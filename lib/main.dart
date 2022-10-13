@@ -16,7 +16,7 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(
         primarySwatch: Colors.green,
       ),
-      home: const MyHomePage(title: 'Burger Forum Oggau'),
+      home: const MyHomePage(title: 'Bürger Forum Oggau'),
     );
   }
 }
