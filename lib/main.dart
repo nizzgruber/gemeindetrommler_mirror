@@ -15,6 +15,7 @@ class MyApp extends StatelessWidget {
       title: 'Flutter Demo',
       theme: ThemeData(
         primarySwatch: Colors.green,
+        scaffoldBackgroundColor: const Color(0xFFFFFFFF)
       ),
       home: const MyHomePage(title: 'Bürger Forum Oggau'),
     );
@@ -68,6 +69,32 @@ class _MyHomePageState extends State<MyHomePage> {
         tooltip: 'Increment',
         child: const Icon(Icons.add),
       ),
+        bottomNavigationBar: BottomAppBar(
+          color: const Color(0xFF1601FD),
+          child: IconTheme(
+            data: IconThemeData(color: Theme.of(context).colorScheme.onPrimary),
+            child: Row(
+              children: <Widget>[
+                IconButton(
+                  tooltip: 'News',
+                  icon: const Icon(Icons.newspaper),
+                  onPressed: () {},
+                ),
+                //if (centerLocations.contains(fabLocation)) const Spacer(),
+                IconButton(
+                  tooltip: 'Mängel',
+                  icon: const Icon(Icons.warning),
+                  onPressed: () {},
+                ),
+                IconButton(
+                  tooltip: 'Profil',
+                  icon: const Icon(Icons.person),
+                  onPressed: () {},
+                ),
+              ],
+            ),
+          ),
+        )
     );
   }
 }
