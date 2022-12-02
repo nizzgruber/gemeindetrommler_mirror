@@ -13,7 +13,7 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return const MaterialApp(
       title: 'Oggauer Gemeindetrommler',
-      home: const MyHomePage(title: 'Oggauer Gemeindetrommler'),
+      home: MyHomePage(title: 'Oggauer Gemeindetrommler'),
       debugShowCheckedModeBanner: false,
     );
   }
