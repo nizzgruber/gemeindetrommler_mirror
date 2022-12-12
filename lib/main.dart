@@ -14,8 +14,9 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return const MaterialApp(
-      title: 'Flutter Demo',
-      home: MyHomePage(title: 'Bürger Forum Oggau'),
+      title: 'Oggauer Gemeindetrommler',
+      home: MyHomePage(title: 'Oggauer Gemeindetrommler'),
+      debugShowCheckedModeBanner: false,
     );
   }
 }
