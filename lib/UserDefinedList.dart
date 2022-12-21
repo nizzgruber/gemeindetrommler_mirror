@@ -16,19 +16,37 @@ class UserDefinedItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ListTile(
-      leading: image,
-      title: Text(title),
-      subtitle: Text(description),
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 10.0),
+      child: ListTile(
+        title: Text(
+          title,
+          style: const TextStyle(
+            fontSize: 24, // beliebige Schriftgröße
+          ),
+        ),
+        subtitle: Text(
+          description,
+          style: const TextStyle(
+            fontSize: 18, // beliebige Schriftgröße
+          ),
+        ),
+        leading: Container(
+          child: image,
+        ),
+      ),
     );
   }
 }
 
 
 class NewsList extends StatelessWidget {
+  const NewsList({super.key});
+
   @override
   Widget build(BuildContext context) {
     return ListView(
+
       children: [
         UserDefinedItem(
           title: 'Rosalia Kapelle',
@@ -48,6 +66,8 @@ class NewsList extends StatelessWidget {
 }
 
 class IssueList extends StatelessWidget {
+  const IssueList({super.key});
+
   @override
   Widget build(BuildContext context) {
     return ListView(
@@ -55,9 +75,8 @@ class IssueList extends StatelessWidget {
         UserDefinedItem(
           title: 'Licht ausgebrannt',
           description: 'Licht ist ausgebrannt in der Sebastianstraße',
-          image: Image.network('https://www.best-of-burgenland.com/assets/img/gemeinden/oggau/oggau_feuerwehr_2022-04-12_003.jpg'),
+          image: Image.network('https://api.ebsg.at/uploads/immo70/originals/objekt_809_oggau-am-neusiedler-see_7063_6021.jpeg',),
         ),
-
         UserDefinedItem(
           title: 'test2',
           description: 'Gemeide Amt der Marktgemeinde Oggau. SPÖ regierend',
