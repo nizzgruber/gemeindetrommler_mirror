@@ -21,7 +21,6 @@ class _MyHomePageState extends State<MyHomePage> {
   static const TextStyle optionStyle =
   TextStyle(fontSize: 30, fontWeight: FontWeight.bold);
 
-
   /*static /*const*/ final List<Widget> _widgetOptions = <Widget>[
     /*Text(
       'Index 0: News',
