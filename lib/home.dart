@@ -1,7 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/widgets.dart';
-
-
 import 'UserDefinedList.dart';
 
 class MyHomePage extends StatefulWidget {
@@ -20,20 +17,6 @@ class _MyHomePageState extends State<MyHomePage> {
 
   static const TextStyle optionStyle =
   TextStyle(fontSize: 30, fontWeight: FontWeight.bold);
-
-  /*static /*const*/ final List<Widget> _widgetOptions = <Widget>[
-    /*Text(
-      'Index 0: News',
-      style: optionStyle,
-    ),*/
-    NewsList(),
-    IssueList(),
-    const Text(
-      'Index 2: Profil',
-      style: optionStyle,
-    )
-  ];*/
-
   void _onItemTapped(int index) {
     setState(() {
       _selectedIndex = index;
@@ -48,14 +31,12 @@ class _MyHomePageState extends State<MyHomePage> {
   }
   @override
   Widget build(BuildContext context) {
-    final List<Widget> _widgetOptions = <Widget>[
-      NewsList(),
-      login ? IssueList() : Container(
-        child: const Text(
-          'Mängel (nur für angemeldete Benutzer verfügbar)',
-          style: optionStyle,
-          textAlign: TextAlign.center,
-        ),
+    final List<Widget> widgetOptions = <Widget>[
+      const NewsList(),
+      login ? const IssueList() : const Text(
+        'Mängel (nur für angemeldete Benutzer verfügbar)',
+        style: optionStyle,
+        textAlign: TextAlign.center,
       ),
       Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -74,17 +55,15 @@ class _MyHomePageState extends State<MyHomePage> {
       ),
     ];
 
-      /*const Text(
-        'Index 2: Profil',
-        style: optionStyle,
-      )*/
-
     return Scaffold(
       appBar: AppBar(
         title: const Text('Oggauer Gemeinde Trommler'),
+
+
       ),
       body: Center(
-        child: _widgetOptions.elementAt(_selectedIndex),
+        child: widgetOptions.elementAt(_selectedIndex),
+
       ),
       bottomNavigationBar: BottomNavigationBar(
         items: const <BottomNavigationBarItem>

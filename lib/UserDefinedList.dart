@@ -1,6 +1,3 @@
-import 'dart:io';
-import 'dart:ui';
-
 import 'package:flutter/material.dart';
 
 import 'DetailPage.dart';
@@ -20,40 +17,63 @@ class UserDefinedItem extends StatelessWidget {
   Widget build(BuildContext context) {
     String shortDescription = "${description.substring(0, 30)}...";
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 10.0),
-      child: ListTile(
-        title: Text(
-          title,
-          style: const TextStyle(
-            fontSize: 20, // beliebige Schriftgröße
-          ),
-        ),
-        subtitle: Text(
-          shortDescription,
-          style: const TextStyle(
-            fontSize: 14, // beliebige Schriftgröße
-          ),
-        ),
-        leading: Container(
-          child: image,
-        ),
-        onTap: () {
-          // Open a new window when the user taps on the list item
-          Navigator.push(
+      padding: const EdgeInsets.symmetric(vertical: 1.0),
+      child: Card(
+        child: InkWell(
+          onTap: () {
+          // Open a new screen when the user taps on the list item
+            Navigator.push(
             context,
-            MaterialPageRoute(
-              builder: (context) => DetailPage(
-                title: title,
-                description: description,
-                image: image,
+              MaterialPageRoute(
+                builder: (context) => DetailPage(
+                  title: title,
+                  description: description,
+                  image: image,
+                ),
               ),
-            ),
-          );
-        },
+            );
+          },
+          child: Row(
+            children: [
+              SizedBox(
+                width: 130,
+                height: 130,
+                child: image,
+              ),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.all(8.0),
+                      child: Text(
+                        title,
+                        style: const TextStyle(
+                          fontSize: 24, // beliebige Schriftgröße
+                        ),
+                      ),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.all(8.0),
+                      child: Text(
+                        shortDescription,
+                        style: const TextStyle(
+                          fontSize: 18, // beliebige Schriftgröße
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        )
       ),
     );
   }
 }
+
+
 
 
 class NewsList extends StatelessWidget {
@@ -132,3 +152,4 @@ class IssueList extends StatelessWidget {
     );
   }
 }
+
