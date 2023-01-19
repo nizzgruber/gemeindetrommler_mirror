@@ -18,6 +18,35 @@ class DetailPage extends StatelessWidget {
       appBar: AppBar(
         title: Text(title),
       ),
+        body: SingleChildScrollView(
+          child: Column(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8.0),
+                child: image,
+              ),
+              Container(
+                padding: const EdgeInsets.all(8.0),
+                child: Text(
+                  title,
+                  style: const TextStyle(
+                    fontSize: 24,
+                  ),
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.all(8.0),
+                child: Text(
+                  description,
+                  style: const TextStyle(
+                    fontSize: 18,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      /*
       body: Column(
         children: [
           Container(
@@ -43,7 +72,7 @@ class DetailPage extends StatelessWidget {
             ),
           ),
         ],
-      ),
+      ),*/
     );
   }
 }
