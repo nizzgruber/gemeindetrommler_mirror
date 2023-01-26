@@ -33,7 +33,7 @@ class _MyHomePageState extends State<MyHomePage> {
   Widget build(BuildContext context) {
     final List<Widget> widgetOptions = <Widget>[
       const NewsList(),
-      login ? const IssueList() : const Text(
+      login ? IssueList() : const Text(
         'Mängel (nur für angemeldete Benutzer verfügbar)',
         style: optionStyle,
         textAlign: TextAlign.center,
