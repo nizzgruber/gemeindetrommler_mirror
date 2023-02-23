@@ -1,3 +1,4 @@
+import 'package:demoapp/AddPage.dart';
 import 'package:flutter/material.dart';
 import 'UserDefinedList.dart';
 
@@ -20,6 +21,19 @@ class _MyHomePageState extends State<MyHomePage> {
   void _onItemTapped(int index) {
     setState(() {
       _selectedIndex = index;
+    });
+  }
+
+  int _counter = 0;
+
+  void _incrementCounter() {
+    setState(() {
+      // This call to setState tells the Flutter framework that something has
+      // changed in this State, which causes it to rerun the build method below
+      // so that the display can reflect the updated values. If we changed
+      // _counter without calling setState(), then the build method would not be
+      // called again, and so nothing would appear to happen.
+      _counter++;
     });
   }
 
@@ -65,6 +79,18 @@ class _MyHomePageState extends State<MyHomePage> {
         child: widgetOptions.elementAt(_selectedIndex),
 
       ),
+
+      floatingActionButton: FloatingActionButton(
+        onPressed: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => AddScreen()),
+          );
+        },
+        tooltip: "Add",
+        child: Icon(Icons.add),
+      ),
+
       bottomNavigationBar: BottomNavigationBar(
         items: const <BottomNavigationBarItem>
         [
