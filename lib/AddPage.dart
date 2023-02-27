@@ -108,38 +108,3 @@ class _AddScreenState extends State<AddScreen> {
     );
   }
 }
-
-/*import 'package:flutter/material.dart';
-
-class AddScreen extends StatelessWidget {
-  const AddScreen({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text('Neues Element hinzufügen'),
-      ),
-      body: Column(
-        children: [
-          TextFormField(
-            decoration: InputDecoration(labelText: 'Titel'),
-          ),
-          TextFormField(
-            decoration: InputDecoration(labelText: 'Beschreibung'),
-          ),
-          TextFormField(
-            decoration: InputDecoration(labelText: 'Bild'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              // Fügen Sie hier die Logik zum Hinzufügen eines neuen Elements hinzu
-              Navigator.pop(context);
-            },
-            child: Text('Hinzufügen'),
-          ),
-        ],
-      ),
-    );
-  }
-}*/
