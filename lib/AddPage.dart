@@ -232,7 +232,7 @@ class _AddScreenState extends State<AddScreen> {
       onTap: () {
         Navigator.pop(context);
         _getImage(ImageSource.gallery);
-      },
+      }, //
     ),
       ListTile(
         leading: Icon(Icons.camera_alt),
