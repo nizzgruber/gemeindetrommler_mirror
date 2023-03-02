@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 class DetailPage extends StatelessWidget {
   final String title;
   final String description;
-  final Image image;
+  final Image? image;
 
   const DetailPage({
     super.key,

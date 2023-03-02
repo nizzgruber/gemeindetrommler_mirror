@@ -5,12 +5,12 @@ import 'DetailPage.dart';
 class UserDefinedItem extends StatelessWidget {
   final String title;
   final String description;
-  final Image image;
+  final Image? image;
 
   const UserDefinedItem({super.key,
     required this.title,
     required this.description,
-    required this.image,
+    this.image,
   });
 
   @override
@@ -28,7 +28,7 @@ class UserDefinedItem extends StatelessWidget {
                 builder: (context) => DetailPage(
                   title: title,
                   description: description,
-                  image: image,
+                  image: image!= null ? image! : null,
                 ),
               ),
             );
@@ -180,6 +180,8 @@ class NewsList extends StatelessWidget {
   }
 }*/
 
+IssueList issueList = IssueList();
+
 class IssueList extends StatelessWidget {
   final List<UserDefinedItem> _items = [];
 
@@ -205,8 +207,8 @@ class IssueList extends StatelessWidget {
       description: 'Gemeide Amt der Marktgemeinde Oggau. SPÖ regierend',
       image: Image.network('https://upload.wikimedia.org/wikipedia/commons/a/a1/Oggau_am_Neusiedler_See_-_Gemeindeamt_%2801%29.jpg'),
     );
-    addUDI(item1);
-    addUDI(item2);
+    //addUDI(item1);
+    //addUDI(item2);
     return ListView(
         children: _items.map((item) => UserDefinedItem(
         title: item.title,
