@@ -46,33 +46,6 @@ class DetailPage extends StatelessWidget {
             ],
           ),
         ),
-      /*
-      body: Column(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(8.0),
-            child: image,
-          ),
-          Container(
-            padding: const EdgeInsets.all(8.0),
-            child: Text(
-              title,
-              style: const TextStyle(
-                fontSize: 24,
-              ),
-            ),
-          ),
-          Container(
-            padding: const EdgeInsets.all(8.0),
-            child: Text(
-              description,
-              style: const TextStyle(
-                fontSize: 18,
-              ),
-            ),
-          ),
-        ],
-      ),*/
     );
   }
 }
