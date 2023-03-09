@@ -270,7 +270,7 @@ class _AddScreenState extends State<AddScreen> {
 class AddScreen extends StatelessWidget {
   const AddScreen({super.key});
 
-  @override
+
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
