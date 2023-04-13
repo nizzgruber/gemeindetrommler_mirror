@@ -16,6 +16,7 @@ class _AddScreenState extends State<AddScreen> {
   final _titleController = TextEditingController();
   final _descriptionController = TextEditingController();
   File? _imageFile;
+  bool _uploading = false;
 
   Future<void> _getImage(ImageSource source) async {
     final pickedFile = await ImagePicker().getImage(source: source);
@@ -68,16 +69,24 @@ class _AddScreenState extends State<AddScreen> {
             child: IconButton(
               icon: Icon(Icons.check),
               onPressed: () async {
-                if (_formKey.currentState!.validate() && _imageFile != null) {
+                if (_formKey.currentState!.validate() && _imageFile != null && !_uploading) {
+                  setState(() {
+                    _uploading = true;
+                  });
                   try {
                     await addNewElementToFirestore(_titleController.text, _descriptionController.text, _imageFile!);
                     Navigator.pop(context);
                   } catch (e) {
                     print(e);
                     // Fehlerbehandlung hier
+                  } finally {
+                    setState(() {
+                      _uploading = false;
+                    });
                   }
                 }
               },
+
             ),
           ),
         ],
