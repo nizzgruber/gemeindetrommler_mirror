@@ -1,18 +1,20 @@
 import 'package:flutter/material.dart';
-
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'DetailPage.dart';
+
+
 
 class UserDefinedItem extends StatelessWidget {
   final String title;
   final String description;
   final Image? image;
 
+
   const UserDefinedItem({super.key,
     required this.title,
     required this.description,
     this.image,
   });
-
   @override
   Widget build(BuildContext context) {
     String shortDescription = "${description.substring(0, 30)}...";
