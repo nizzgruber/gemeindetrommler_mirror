@@ -1,4 +1,7 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 
 class AddScreen extends StatefulWidget {
   @override
@@ -9,7 +12,17 @@ class _AddScreenState extends State<AddScreen> {
   final _formKey = GlobalKey<FormState>();
   final _titleController = TextEditingController();
   final _descriptionController = TextEditingController();
-  final _imageController = TextEditingController();
+  File? _imageFile;
+
+  Future<void> _getImage(ImageSource source) async {
+    final pickedFile = await ImagePicker().getImage(source: source);
+
+    if (pickedFile != null) {
+      setState(() {
+        _imageFile = File(pickedFile.path);
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -24,7 +37,9 @@ class _AddScreenState extends State<AddScreen> {
               onPressed: () {
                 _titleController.clear();
                 _descriptionController.clear();
-                _imageController.clear();
+                setState(() {
+                  _imageFile = null;
+                });
               },
             ),
           ),
@@ -84,23 +99,52 @@ class _AddScreenState extends State<AddScreen> {
                 },
               ),
               SizedBox(height: 16.0),
-              TextFormField(
-                decoration: InputDecoration(
-                  labelText: 'Bild',
-                  filled: true,
-                  fillColor: Colors.grey[200],
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(16.0),
-                  ),
-                ),
-                controller: _imageController,
-                validator: (value) {
-                  if (value!.isEmpty) {
-                    return 'Bitte geben Sie ein Bild ein.';
-                  }
-                  return null;
-                },
-              ),
+              _imageFile != null
+                  ? Image.file(_imageFile!)
+                  : Container(
+                      height: 150.0,
+                      decoration: BoxDecoration(
+                        color: Colors.grey[200],
+                        borderRadius: BorderRadius.circular(16.0),
+                      ),
+                      child: Center(
+                        child: TextButton(
+                          onPressed: () {
+                            showModalBottomSheet(
+                              context: context,
+                              builder: (context) => Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  ListTile(
+                                    leading: Icon(Icons.photo_library),
+                                    title: Text('Galerie auswählen'),
+                                    onTap: () {
+                                      Navigator.pop(context);
+                                      _getImage(ImageSource.gallery);
+                                    }, //
+                                  ),
+                                  ListTile(
+                                    leading: Icon(Icons.camera_alt),
+                                    title: Text('Kamera verwenden'),
+                                    onTap: () {
+                                      Navigator.pop(context);
+                                      _getImage(ImageSource.camera);
+                                    },
+                                  ),
+                                ],
+                              ),
+                            );
+                          },
+                          child: Text(
+                            'Bild hinzufügen',
+                            style: TextStyle(
+                              color: Theme.of(context).primaryColor,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
             ],
           ),
         ),

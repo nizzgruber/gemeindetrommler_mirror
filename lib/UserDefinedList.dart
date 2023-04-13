@@ -5,12 +5,12 @@ import 'DetailPage.dart';
 class UserDefinedItem extends StatelessWidget {
   final String title;
   final String description;
-  final Image image;
+  final Image? image;
 
   const UserDefinedItem({super.key,
     required this.title,
     required this.description,
-    required this.image,
+    this.image,
   });
 
   @override
@@ -28,7 +28,7 @@ class UserDefinedItem extends StatelessWidget {
                 builder: (context) => DetailPage(
                   title: title,
                   description: description,
-                  image: image,
+                  image: image!= null ? image! : null,
                 ),
               ),
             );
@@ -130,26 +130,45 @@ class NewsList extends StatelessWidget {
   }
 }
 
+IssueList issueList = IssueList();
+
 class IssueList extends StatelessWidget {
-  const IssueList({super.key});
+  final List<UserDefinedItem> _items = [];
+
+  IssueList({super.key});
+
+  void addUDI(UserDefinedItem udi) {
+    _items.add(udi);
+  }
+
+  void removeUDI(UserDefinedItem udi) {
+    _items.remove(udi);
+  }
 
   @override
   Widget build(BuildContext context) {
+    final UserDefinedItem item1 = UserDefinedItem(
+      title: 'Licht ausgebrannt',
+      description: 'Licht ist ausgebrannt in der Sebastianstraße',
+      image: Image.network('https://api.ebsg.at/uploads/immo70/originals/objekt_809_oggau-am-neusiedler-see_7063_6021.jpeg',),
+    );
+    final UserDefinedItem item2 = UserDefinedItem(
+      title: 'test2',
+      description: 'Gemeide Amt der Marktgemeinde Oggau. SPÖ regierend',
+      image: Image.network('https://upload.wikimedia.org/wikipedia/commons/a/a1/Oggau_am_Neusiedler_See_-_Gemeindeamt_%2801%29.jpg'),
+    );
+    //addUDI(item1);
+    //addUDI(item2);
     return ListView(
-      children: [
-        UserDefinedItem(
-          title: 'Licht ausgebrannt',
-          description: 'Licht ist ausgebrannt in der Sebastianstraße',
-          image: Image.network('https://api.ebsg.at/uploads/immo70/originals/objekt_809_oggau-am-neusiedler-see_7063_6021.jpeg',),
+        children: _items.map((item) => UserDefinedItem(
+        title: item.title,
+        description: item.description,
+        image: item.image,
         ),
-        UserDefinedItem(
-          title: 'test2',
-          description: 'Gemeide Amt der Marktgemeinde Oggau. SPÖ regierend',
-          image: Image.network('https://upload.wikimedia.org/wikipedia/commons/a/a1/Oggau_am_Neusiedler_See_-_Gemeindeamt_%2801%29.jpg'),
-        ),
-
-      ],
+        ).toList(),
     );
   }
 }
+
+
 
