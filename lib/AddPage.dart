@@ -7,8 +7,12 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 
 
 class AddScreen extends StatefulWidget {
+  final int initialIndex;
+
+  AddScreen({required this.initialIndex});
   @override
   _AddScreenState createState() => _AddScreenState();
+
 }
 
 class _AddScreenState extends State<AddScreen> {
@@ -17,6 +21,13 @@ class _AddScreenState extends State<AddScreen> {
   final _descriptionController = TextEditingController();
   File? _imageFile;
   bool _uploading = false;
+  int _selectedIndex = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _selectedIndex = widget.initialIndex;
+  }
 
   Future<void> _getImage(ImageSource source) async {
     final pickedFile = await ImagePicker().getImage(source: source);
@@ -36,12 +47,25 @@ class _AddScreenState extends State<AddScreen> {
     String imageUrl = await (await uploadTask).ref.getDownloadURL();
 
     // Das neue Element in der Firestore-Sammlung "Issues" speichern
-    await FirebaseFirestore.instance.collection("Issues").add({
-      "title": title,
-      "description": description,
-      "imageUrl": imageUrl,
-      "createdDate": DateTime.now(),
-    });
+    if(_selectedIndex == 1)
+    {
+      await FirebaseFirestore.instance.collection("Issues").add({
+        "title": title,
+        "description": description,
+        "imageUrl": imageUrl,
+        "createdDate": DateTime.now(),
+      });
+    }
+    else
+    {
+      await FirebaseFirestore.instance.collection("News").add({
+        "title": title,
+        "description": description,
+        "imageUrl": imageUrl,
+        "createdDate": DateTime.now(),
+      });
+    }
+
   }
 
 

@@ -70,7 +70,7 @@ class _MyHomePageState extends State<MyHomePage> {
         onPressed: () {
           Navigator.push(
             context,
-            MaterialPageRoute(builder: (context) => AddScreen()),
+            MaterialPageRoute(builder: (context) => AddScreen(initialIndex: _selectedIndex,)),
           );
         },
         tooltip: "Add",
