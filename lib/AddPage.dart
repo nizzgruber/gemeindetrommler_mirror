@@ -42,13 +42,15 @@ class _AddScreenState extends State<AddScreen> {
 
   Future<void> addNewElementToFirestore(String title, String description, File imageFile) async {
     // Zunächst das Bild in Firebase Storage speichern
-    Reference ref = FirebaseStorage.instance.ref().child("images/${DateTime.now().toString()}");
-    UploadTask uploadTask = ref.putFile(imageFile);
-    String imageUrl = await (await uploadTask).ref.getDownloadURL();
+
 
     // Das neue Element in der Firestore-Sammlung "Issues" speichern
     if(_selectedIndex == 1)
     {
+      Reference ref = FirebaseStorage.instance.ref().child("Issues/${DateTime.now().toString()}");
+      UploadTask uploadTask = ref.putFile(imageFile);
+      String imageUrl = await (await uploadTask).ref.getDownloadURL();
+
       await FirebaseFirestore.instance.collection("Issues").add({
         "title": title,
         "description": description,
@@ -58,6 +60,9 @@ class _AddScreenState extends State<AddScreen> {
     }
     else
     {
+      Reference ref = FirebaseStorage.instance.ref().child("News/${DateTime.now().toString()}");
+      UploadTask uploadTask = ref.putFile(imageFile);
+      String imageUrl = await (await uploadTask).ref.getDownloadURL();
       await FirebaseFirestore.instance.collection("News").add({
         "title": title,
         "description": description,
