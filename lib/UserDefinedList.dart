@@ -18,8 +18,6 @@ class UserDefinedItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    String shortDescription = "${description.substring(0,34)}...";
-
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 1.0),
       child: Card(
@@ -31,6 +29,7 @@ class UserDefinedItem extends StatelessWidget {
               MaterialPageRoute(
                 builder: (context) => DetailPage(
                   title: title,
+                  datum: datum,
                   description: description,
                   image: image != null ? image! : null,
                 ),
@@ -58,7 +57,8 @@ class UserDefinedItem extends StatelessWidget {
                               title,
                               overflow: TextOverflow.ellipsis,
                               style: const TextStyle(
-                                fontSize: 20, // beliebige Schriftgröße
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold// beliebige Schriftgröße
                               ),
                             ),
                           ),
@@ -72,14 +72,17 @@ class UserDefinedItem extends StatelessWidget {
                       ),
                     ),
                     Padding(
-                      padding: const EdgeInsets.all(8.0),
-                      child: Text(
-                        shortDescription,
-                        style: const TextStyle(
-                          fontSize: 18, // beliebige Schriftgröße
+                      padding: const EdgeInsets.all(8.0),  // feste Höhe für 2 Zeilen
+                        child: Flexible(
+                          child: Text(
+                            description,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              fontSize: 15,
+                            ),
+                          ),
                         ),
                       ),
-                    ),
                   ],
                 ),
               ),

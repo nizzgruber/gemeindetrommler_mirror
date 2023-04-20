@@ -3,20 +3,20 @@ import 'package:intl/intl.dart';
 
 class DetailPage extends StatelessWidget {
   final String title;
+  final String datum;
   final String description;
   final Image? image;
 
   const DetailPage({
     Key? key,
     required this.title,
+    required this.datum,
     required this.description,
     required this.image,
   }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
-    final String formattedDate = DateFormat('dd.MM.yyyy').format(DateTime.now());
-
     return Scaffold(
       appBar: AppBar(
         title: Text(title),
@@ -42,7 +42,7 @@ class DetailPage extends StatelessWidget {
             Container(
               padding: const EdgeInsets.only(left: 8.0, bottom: 8.0),
               child: Text(
-                formattedDate,
+                datum,
                 style: const TextStyle(
                   fontSize: 18,
                 ),
