@@ -39,8 +39,8 @@ class UserDefinedItem extends StatelessWidget {
           child: Row(
             children: [
               SizedBox(
-                width: 130,
-                height: 130,
+                width: 120,
+                height: 120,
                 child: image,
               ),
               Flexible(
@@ -65,7 +65,7 @@ class UserDefinedItem extends StatelessWidget {
                           Text(
                             datum,
                             style: const TextStyle(
-                              fontSize: 16, // beliebige Schriftgröße
+                              fontSize: 15, // beliebige Schriftgröße
                             ),
                           ),
                         ],
@@ -76,6 +76,7 @@ class UserDefinedItem extends StatelessWidget {
                         child: Flexible(
                           child: Text(
                             description,
+                            maxLines: 3,
                             overflow: TextOverflow.ellipsis,
                             style: const TextStyle(
                               fontSize: 15,
