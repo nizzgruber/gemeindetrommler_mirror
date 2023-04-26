@@ -1,4 +1,4 @@
-package com.example.oggauer_gemeindetrommler
+package com.oggauergemeindetrommler.app
 
 import io.flutter.embedding.android.FlutterActivity
 
