@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'DetailPage.dart';
 import 'package:intl/intl.dart';
 
@@ -19,73 +18,74 @@ class UserDefinedItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    String shortDescription = "${description.substring(0,34)}...";
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 1.0),
-      child: Card(
-        child: InkWell(
-          onTap: () {
-            // Open a new screen when the user taps on the list item
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => DetailPage(
-                  title: title,
-                  description: description,
-                  image: image != null ? image! : null,
-                ),
+    return Card(
+      child: InkWell(
+        onTap: () {
+          // Open a new screen when the user taps on the list item
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => DetailPage(
+                title: title,
+                datum: datum,
+                description: description,
+                image: image != null ? image! : null,
               ),
-            );
-          },
-          child: Row(
-            children: [
-              SizedBox(
-                width: 130,
-                height: 130,
-                child: image,
-              ),
-              Flexible(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Padding(
-                      padding: const EdgeInsets.all(8.0),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Flexible(
-                            child: Text(
-                              title,
-                              overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
-                                fontSize: 20, // beliebige Schriftgröße
-                              ),
-                            ),
-                          ),
-                          Text(
-                            datum,
+            ),
+          );
+        },
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SizedBox(
+              width: 120,
+              height: 120,
+              child: image,
+            ),
+            Flexible(
+              flex: 1,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.all(8.0),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Flexible(
+                          child: Text(
+                            title,
+                            overflow: TextOverflow.ellipsis,
                             style: const TextStyle(
-                              fontSize: 16, // beliebige Schriftgröße
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold// beliebige Schriftgröße
                             ),
                           ),
-                        ],
-                      ),
-                    ),
-                    Padding(
-                      padding: const EdgeInsets.all(8.0),
-                      child: Text(
-                        shortDescription,
-                        style: const TextStyle(
-                          fontSize: 18, // beliebige Schriftgröße
                         ),
+                        Text(
+                          datum,
+                          style: const TextStyle(
+                            fontSize: 15, // beliebige Schriftgröße
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.all(8.0),  // feste Höhe für 2 Zeilen
+                    child: Text(
+                      description,
+                      maxLines: 3,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontSize: 15,
                       ),
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
@@ -191,16 +191,13 @@ class IssueList extends StatelessWidget {
     //addUDI(item1);
     //addUDI(item2);
     return ListView(
-        children: _items.map((item) => UserDefinedItem(
+      children: _items.map((item) => UserDefinedItem(
         title: item.title,
         datum: item.datum,
         description: item.description,
         image: item.image,
-        ),
-        ).toList(),
+      ),
+      ).toList(),
     );
   }
 }
-
-
-
