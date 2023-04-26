@@ -17,7 +17,10 @@ import 'package:flutter/foundation.dart'
 class DefaultFirebaseOptions {
   static FirebaseOptions get currentPlatform {
     if (kIsWeb) {
-      return web;
+      throw UnsupportedError(
+        'DefaultFirebaseOptions have not been configured for web - '
+        'you can reconfigure this by running the FlutterFire CLI again.',
+      );
     }
     switch (defaultTargetPlatform) {
       case TargetPlatform.android:
@@ -46,19 +49,9 @@ class DefaultFirebaseOptions {
     }
   }
 
-  static const FirebaseOptions web = FirebaseOptions(
-    apiKey: 'AIzaSyBmdRrWkqosCAtlOeqs-G-4oWAvwLt3KnQ',
-    appId: '1:576683162451:web:71c67b5ef44ab7c1083fa6',
-    messagingSenderId: '576683162451',
-    projectId: 'gemeinde-trommler',
-    authDomain: 'gemeinde-trommler.firebaseapp.com',
-    storageBucket: 'gemeinde-trommler.appspot.com',
-    measurementId: 'G-ZH37BQ8679',
-  );
-
   static const FirebaseOptions android = FirebaseOptions(
     apiKey: 'AIzaSyAWjSjX1f2rGUGHLbXQS873DYY_oXqcHhs',
-    appId: '1:576683162451:android:b792a81fceafa932083fa6',
+    appId: '1:576683162451:android:48edba9829ee7925083fa6',
     messagingSenderId: '576683162451',
     projectId: 'gemeinde-trommler',
     storageBucket: 'gemeinde-trommler.appspot.com',
@@ -66,7 +59,7 @@ class DefaultFirebaseOptions {
 
   static const FirebaseOptions ios = FirebaseOptions(
     apiKey: 'AIzaSyDV441PhkPEC7igZmYMpJ_axLMc2bKQ5fY',
-    appId: '1:576683162451:ios:2fd841a4b4ca70d5083fa6',
+    appId: '1:576683162451:ios:f3e9140edfc4c945083fa6',
     messagingSenderId: '576683162451',
     projectId: 'gemeinde-trommler',
     storageBucket: 'gemeinde-trommler.appspot.com',

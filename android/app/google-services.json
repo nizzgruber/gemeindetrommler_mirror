@@ -7,9 +7,9 @@
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:576683162451:android:b792a81fceafa932083fa6",
+        "mobilesdk_app_id": "1:576683162451:android:48edba9829ee7925083fa6",
         "android_client_info": {
-          "package_name": "com.example.demoapp"
+          "package_name": "com.oggauergemeindetrommler.app"
         }
       },
       "oauth_client": [
