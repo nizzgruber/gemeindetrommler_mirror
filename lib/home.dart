@@ -1,4 +1,4 @@
-import 'package:demoapp/AddPage.dart';
+import 'package:oggauergemeindetrommler/AddPage.dart';
 import 'package:flutter/material.dart';
 import 'UserDefinedList.dart';
 
@@ -33,7 +33,7 @@ class _MyHomePageState extends State<MyHomePage> {
   Widget build(BuildContext context) {
     final List<Widget> widgetOptions = <Widget>[
       const NewsList(),
-      login ? issueList: const Text(
+      login ? const IssueList(): const Text(
         'Mängel (nur für angemeldete Benutzer verfügbar)',
         style: optionStyle,
         textAlign: TextAlign.center,
@@ -70,7 +70,7 @@ class _MyHomePageState extends State<MyHomePage> {
         onPressed: () {
           Navigator.push(
             context,
-            MaterialPageRoute(builder: (context) => AddScreen()),
+            MaterialPageRoute(builder: (context) => AddScreen(initialIndex: _selectedIndex,)),
           );
         },
         tooltip: "Add",

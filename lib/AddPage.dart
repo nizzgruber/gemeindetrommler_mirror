@@ -1,13 +1,18 @@
 import 'dart:io';
 
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+
 
 class AddScreen extends StatefulWidget {
-  const AddScreen({super.key});
+  final int initialIndex;
 
+  AddScreen({required this.initialIndex});
   @override
   _AddScreenState createState() => _AddScreenState();
+
 }
 
 class _AddScreenState extends State<AddScreen> {
@@ -15,6 +20,14 @@ class _AddScreenState extends State<AddScreen> {
   final _titleController = TextEditingController();
   final _descriptionController = TextEditingController();
   File? _imageFile;
+  bool _uploading = false;
+  int _selectedIndex = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _selectedIndex = widget.initialIndex;
+  }
 
   Future<void> _getImage(ImageSource source) async {
     final pickedFile = await ImagePicker().getImage(source: source);
@@ -25,6 +38,41 @@ class _AddScreenState extends State<AddScreen> {
       });
     }
   }
+
+
+  Future<void> addNewElementToFirestore(String title, String description, File imageFile) async {
+    // Zunächst das Bild in Firebase Storage speichern
+
+
+    // Das neue Element in der Firestore-Sammlung "Issues" speichern
+    if(_selectedIndex == 1)
+    {
+      Reference ref = FirebaseStorage.instance.ref().child("Issues/${DateTime.now().toString()}");
+      UploadTask uploadTask = ref.putFile(imageFile);
+      String imageUrl = await (await uploadTask).ref.getDownloadURL();
+
+      await FirebaseFirestore.instance.collection("Issues").add({
+        "title": title,
+        "description": description,
+        "imageUrl": imageUrl,
+        "createdDate": DateTime.now(),
+      });
+    }
+    else
+    {
+      Reference ref = FirebaseStorage.instance.ref().child("News/${DateTime.now().toString()}");
+      UploadTask uploadTask = ref.putFile(imageFile);
+      String imageUrl = await (await uploadTask).ref.getDownloadURL();
+      await FirebaseFirestore.instance.collection("News").add({
+        "title": title,
+        "description": description,
+        "imageUrl": imageUrl,
+        "createdDate": DateTime.now(),
+      });
+    }
+
+  }
+
 
   @override
   Widget build(BuildContext context) {
@@ -49,12 +97,25 @@ class _AddScreenState extends State<AddScreen> {
             padding: const EdgeInsets.only(right: 8.0),
             child: IconButton(
               icon: Icon(Icons.check),
-              onPressed: () {
-                if (_formKey.currentState!.validate()) {
-                  // Hier wird die Logik zum Hinzufügen des neuen Elements ausgeführt
-                  Navigator.pop(context);
+              onPressed: () async {
+                if (_formKey.currentState!.validate() && _imageFile != null && !_uploading) {
+                  setState(() {
+                    _uploading = true;
+                  });
+                  try {
+                    await addNewElementToFirestore(_titleController.text, _descriptionController.text, _imageFile!);
+                    Navigator.pop(context);
+                  } catch (e) {
+                    print(e);
+                    // Fehlerbehandlung hier
+                  } finally {
+                    setState(() {
+                      _uploading = false;
+                    });
+                  }
                 }
               },
+
             ),
           ),
         ],
