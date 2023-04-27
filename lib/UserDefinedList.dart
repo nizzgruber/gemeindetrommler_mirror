@@ -130,11 +130,12 @@ class _NewsListState extends State<NewsList> {
             return ListView.builder(
               itemCount: documents.length,
               itemBuilder: (BuildContext context, int index) {
-                final Map<String, dynamic> data =
-                documents[index].data()! as Map<String, dynamic>;
+                final Map<String, dynamic> data = documents[index].data()! as Map<String, dynamic>;
+                final DateTime createdDate = data['createdDate'].toDate();
+                final formattedDate = DateFormat('dd.MM.yyyy').format(createdDate);
                 return UserDefinedItem(
                   title: data['title'] ?? '',
-                  datum: (data['createdDate'].toDate().toString()).substring(0,10),
+                  datum: formattedDate,
                   description: data['description'] ?? '',
                   image: Image.network((data['imageUrl'])),
                 );
@@ -147,7 +148,7 @@ class _NewsListState extends State<NewsList> {
 }
 
 
-  class IssueList extends StatefulWidget {
+class IssueList extends StatefulWidget {
   const IssueList({Key? key}) : super(key: key);
 
   @override
@@ -181,11 +182,62 @@ class _IssueListState extends State<IssueList> {
               itemCount: documents.length,
               itemBuilder: (BuildContext context, int index) {
                 final Map<String, dynamic> data = documents[index].data()! as Map<String, dynamic>;
+                final DateTime createdDate = data['createdDate'].toDate();
+                final formattedDate = DateFormat('dd.MM.yyyy').format(createdDate);
                 return UserDefinedItem(
                   title: data['title'] ?? '',
-                  datum: (data['createdDate'].toDate().toString()).substring(0,10),
+                  datum: formattedDate,
                   description: data['description'] ?? '',
-                  image: Image.network(data['imageUrl'] ?? ''),
+                  image: Image.network((data['imageUrl'])),
+                );
+              },
+            );
+        }
+      },
+    );
+  }
+}
+class CitizensForum extends StatefulWidget {
+  const CitizensForum({Key? key}) : super(key: key);
+
+  @override
+  _CitizensForum createState() => _CitizensForum();
+}
+
+class _CitizensForum extends State<IssueList> {
+  final FirebaseFirestore firestore = FirebaseFirestore.instance;
+  late Stream<QuerySnapshot> citizenStream;
+
+  @override
+  void initState() {
+    super.initState();
+    citizenStream = firestore.collection('CitizensForum').snapshots();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return StreamBuilder<QuerySnapshot>(
+      stream: citizenStream,
+      builder: (BuildContext context, AsyncSnapshot<QuerySnapshot> snapshot) {
+        if (snapshot.hasError) {
+          return Text('Error: ${snapshot.error}');
+        }
+        switch (snapshot.connectionState) {
+          case ConnectionState.waiting:
+            return const Text('Loading...');
+          default:
+            final List<QueryDocumentSnapshot> documents = snapshot.data!.docs;
+            return ListView.builder(
+              itemCount: documents.length,
+              itemBuilder: (BuildContext context, int index) {
+                final Map<String, dynamic> data = documents[index].data()! as Map<String, dynamic>;
+                final DateTime createdDate = data['createdDate'].toDate();
+                final formattedDate = DateFormat('dd.MM.yyyy').format(createdDate);
+                return UserDefinedItem(
+                  title: data['title'] ?? '',
+                  datum: formattedDate,
+                  description: data['description'] ?? '',
+                  image: Image.network((data['imageUrl'])),
                 );
               },
             );
