@@ -94,9 +94,6 @@ class UserDefinedItem extends StatelessWidget {
 }
 
 
-
-
-
 class NewsList extends StatefulWidget {
   const NewsList({Key? key}) : super(key: key);
 
@@ -133,6 +130,122 @@ class _NewsListState extends State<NewsList> {
                 final Map<String, dynamic> data = documents[index].data()! as Map<String, dynamic>;
                 final DateTime createdDate = data['createdDate'].toDate();
                 final formattedDate = DateFormat('dd.MM.yyyy').format(createdDate);
+                return Dismissible(
+                  key: Key(documents[index].id),
+                  direction: DismissDirection.endToStart,
+                  onDismissed: (direction) async {
+                    await firestore.collection('News').doc(documents[index].id).delete();
+                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                      content: Text("News wurde gelöscht"),
+                    ));
+                  },
+                  background: Container(
+                    color: Colors.red,
+                    alignment: Alignment.centerRight,
+                    child: const Icon(
+                      Icons.delete,
+                      color: Colors.white,
+                    ),
+                  ),
+                  child: UserDefinedItem(
+                    title: data['title'] ?? '',
+                    datum: formattedDate,
+                    description: data['description'] ?? '',
+                    image: Image.network((data['imageUrl'])),
+                  ),
+                );
+              },
+            );
+        }
+      },
+    );
+  }
+}
+
+
+/*
+class NewsList extends StatefulWidget {
+  const NewsList({Key? key}) : super(key: key);
+
+  @override
+  _NewsListState createState() => _NewsListState();
+}
+
+class _NewsListState extends State<NewsList> {
+  final FirebaseFirestore firestore = FirebaseFirestore.instance;
+  late Stream<QuerySnapshot> newsStream;
+
+  @override
+  void initState() {
+    super.initState();
+    newsStream = firestore.collection('News').snapshots();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return StreamBuilder<QuerySnapshot>(
+      stream: newsStream,
+      builder: (BuildContext context, AsyncSnapshot<QuerySnapshot> snapshot) {
+        if (snapshot.hasError) {
+          return Text('Error: ${snapshot.error}');
+        }
+        switch (snapshot.connectionState) {
+          case ConnectionState.waiting:
+            return const Text('Loading...');
+          default:
+            final List<QueryDocumentSnapshot> documents = snapshot.data!.docs;
+            return ListView.builder(
+              itemCount: documents.length,
+              itemBuilder: (BuildContext context, int index) {
+                final Map<String, dynamic> data = documents[index]
+                    .data()! as Map<String, dynamic>;
+                final DateTime createdDate = data['createdDate'].toDate();
+                final formattedDate = DateFormat('dd.MM.yyyy').format(
+                    createdDate);
+                return Dismissible(
+                  key: UniqueKey(),
+                  onDismissed: (direction) {
+                    setState(() {
+                      documents.removeAt(index);
+                    });
+                  },
+                  child: UserDefinedItem(
+                    title: data['title'] ?? '',
+                    datum: formattedDate,
+                    description: data['description'] ?? '',
+                    image: Image.network((data['imageUrl'])),
+                  ),
+                );
+              },
+            );
+        }
+      },
+    );
+  }
+}
+*/
+
+
+  /*
+  @override
+  Widget build(BuildContext context) {
+    return StreamBuilder<QuerySnapshot>(
+      stream: newsStream,
+      builder: (BuildContext context, AsyncSnapshot<QuerySnapshot> snapshot) {
+        if (snapshot.hasError) {
+          return Text('Error: ${snapshot.error}');
+        }
+        switch (snapshot.connectionState) {
+          case ConnectionState.waiting:
+            return const Text('Loading...');
+          default:
+            final List<QueryDocumentSnapshot> documents = snapshot.data!.docs;
+            return ListView.builder(
+              itemCount: documents.length,
+              itemBuilder: (BuildContext context, int index) {
+                final Map<String, dynamic> data = documents[index].data()! as Map<String, dynamic>;
+                final DateTime createdDate = data['createdDate'].toDate();
+                final formattedDate = DateFormat('dd.MM.yyyy').format(createdDate);
                 return UserDefinedItem(
                   title: data['title'] ?? '',
                   datum: formattedDate,
@@ -146,7 +259,7 @@ class _NewsListState extends State<NewsList> {
     );
   }
 }
-
+*/
 
 class IssueList extends StatefulWidget {
   const IssueList({Key? key}) : super(key: key);
