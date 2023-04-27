@@ -9,7 +9,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 class AddScreen extends StatefulWidget {
   final int initialIndex;
 
-  AddScreen({required this.initialIndex});
+  const AddScreen({super.key, required this.initialIndex});
   @override
   _AddScreenState createState() => _AddScreenState();
 
@@ -23,14 +23,16 @@ class _AddScreenState extends State<AddScreen> {
   bool _uploading = false;
   int _selectedIndex = 0;
 
+
   @override
   void initState() {
     super.initState();
     _selectedIndex = widget.initialIndex;
   }
 
+
   Future<void> _getImage(ImageSource source) async {
-    final pickedFile = await ImagePicker().getImage(source: source);
+    final pickedFile = await ImagePicker().pickImage(source: source);
 
     if (pickedFile != null) {
       setState(() {
@@ -38,65 +40,53 @@ class _AddScreenState extends State<AddScreen> {
       });
     }
   }
-
-
   Future<void> addNewElementToFirestore(String title, String description, File imageFile) async {
-    // Zunächst das Bild in Firebase Storage speichern
-
-
-    // Das neue Element in der Firestore-Sammlung "Issues" speichern
-    if(_selectedIndex == 0)
-    {
-      Reference ref = FirebaseStorage.instance.ref().child("CitizensForum/${DateTime.now().toString()}");
-      UploadTask uploadTask = ref.putFile(imageFile);
-      String imageUrl = await (await uploadTask).ref.getDownloadURL();
-
-      await FirebaseFirestore.instance.collection("CitizensForum").add({
-        "title": title,
-        "description": description,
-        "imageUrl": imageUrl,
-        "createdDate": DateTime.now(),
-      });
-    }
-    else if(_selectedIndex == 1)
-    {
-      Reference ref = FirebaseStorage.instance.ref().child("News/${DateTime.now().toString()}");
-      UploadTask uploadTask = ref.putFile(imageFile);
-      String imageUrl = await (await uploadTask).ref.getDownloadURL();
-
-      await FirebaseFirestore.instance.collection("News").add({
-        "title": title,
-        "description": description,
-        "imageUrl": imageUrl,
-        "createdDate": DateTime.now(),
-      });
-    }
-    else
-    {
-      Reference ref = FirebaseStorage.instance.ref().child("Issues/${DateTime.now().toString()}");
-      UploadTask uploadTask = ref.putFile(imageFile);
-      String imageUrl = await (await uploadTask).ref.getDownloadURL();
-      await FirebaseFirestore.instance.collection("Issues").add({
-        "title": title,
-        "description": description,
-        "imageUrl": imageUrl,
-        "createdDate": DateTime.now(),
-      });
+    String collectionName;
+    if (_selectedIndex == 0) {
+      collectionName = "CitizensForum";
+    } else if (_selectedIndex == 1) {
+      collectionName = "News";
+    } else {
+      collectionName = "Issues";
     }
 
+    String imageUrl = await uploadImageToFirebaseStorage(imageFile, collectionName);
+
+    await FirebaseFirestore.instance.collection(collectionName).add({
+      "title": title,
+      "description": description,
+      "imageUrl": imageUrl,
+      "createdDate": DateTime.now(),
+    });
   }
+
+  Future<String> uploadImageToFirebaseStorage(File imageFile, String collectionName) async {
+    Reference ref = FirebaseStorage.instance.ref().child("$collectionName/${DateTime.now().toString()}");
+    UploadTask uploadTask = ref.putFile(imageFile);
+    return await (await uploadTask).ref.getDownloadURL();
+  }
+
 
 
   @override
   Widget build(BuildContext context) {
+    String appBarTitle = '';
+
+    if (_selectedIndex == 0) {
+      appBarTitle = 'Neue BürgerForum Information';
+    } else if (_selectedIndex == 1) {
+      appBarTitle = 'Neue Neuigkeit';
+    } else if (_selectedIndex == 2) {
+      appBarTitle = 'Neuer Mängel';
+    }
     return Scaffold(
       appBar: AppBar(
-        title: Text('Neues Element hinzufügen'),
+        title: Text(appBarTitle),
         actions: [
           Padding(
             padding: const EdgeInsets.only(right: 8.0),
             child: IconButton(
-              icon: Icon(Icons.refresh),
+              icon: const Icon(Icons.refresh),
               onPressed: () {
                 _titleController.clear();
                 _descriptionController.clear();
@@ -109,14 +99,17 @@ class _AddScreenState extends State<AddScreen> {
           Padding(
             padding: const EdgeInsets.only(right: 8.0),
             child: IconButton(
-              icon: Icon(Icons.check),
+              icon: const Icon(Icons.check),
               onPressed: () async {
-                if (_formKey.currentState!.validate() && _imageFile != null && !_uploading) {
+                if (_formKey.currentState!.validate() && _imageFile != null &&
+                    !_uploading) {
                   setState(() {
                     _uploading = true;
                   });
                   try {
-                    await addNewElementToFirestore(_titleController.text, _descriptionController.text, _imageFile!);
+                    await addNewElementToFirestore(
+                        _titleController.text, _descriptionController.text,
+                        _imageFile!);
                     Navigator.pop(context);
                   } catch (e) {
                     print(e);
@@ -128,7 +121,6 @@ class _AddScreenState extends State<AddScreen> {
                   }
                 }
               },
-
             ),
           ),
         ],
@@ -156,7 +148,7 @@ class _AddScreenState extends State<AddScreen> {
                   return null;
                 },
               ),
-              SizedBox(height: 16.0),
+              const SizedBox(height: 16.0),
               TextFormField(
                 decoration: InputDecoration(
                   labelText: 'Beschreibung',
@@ -174,53 +166,98 @@ class _AddScreenState extends State<AddScreen> {
                   return null;
                 },
               ),
-              SizedBox(height: 16.0),
+              const SizedBox(height: 16.0),
               _imageFile != null
                   ? Image.file(_imageFile!)
                   : Container(
-                      height: 150.0,
-                      decoration: BoxDecoration(
-                        color: Colors.grey[200],
-                        borderRadius: BorderRadius.circular(16.0),
-                      ),
-                      child: Center(
-                        child: TextButton(
-                          onPressed: () {
-                            showModalBottomSheet(
-                              context: context,
-                              builder: (context) => Column(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  ListTile(
-                                    leading: Icon(Icons.photo_library),
-                                    title: Text('Galerie auswählen'),
-                                    onTap: () {
-                                      Navigator.pop(context);
-                                      _getImage(ImageSource.gallery);
-                                    }, //
+                height: 200.0,
+                decoration: BoxDecoration(
+                  color: Colors.grey[200],
+                  borderRadius: BorderRadius.circular(16.0),
+                ),
+                child: Center(
+                  child: TextButton(
+                    onPressed: () {
+                      showModalBottomSheet(
+                        context: context,
+                        builder: (context) =>
+                            Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Container(
+                                  height: 60,
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 16),
+                                  child: Row(
+                                    mainAxisAlignment: MainAxisAlignment
+                                        .spaceBetween,
+                                    children: [
+                                      const Text(
+                                        'Bild hinzufügen',
+                                        style: TextStyle(
+                                          fontSize: 20,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                      IconButton(
+                                        icon: const Icon(Icons.close),
+                                        onPressed: () {
+                                          Navigator.pop(context);
+                                        },
+                                      ),
+                                    ],
                                   ),
-                                  ListTile(
-                                    leading: Icon(Icons.camera_alt),
-                                    title: Text('Kamera verwenden'),
-                                    onTap: () {
-                                      Navigator.pop(context);
-                                      _getImage(ImageSource.camera);
-                                    },
+                                ),
+                                Center(
+                                  child: Container(
+                                    height: 80,
+                                    child: ListTile(
+                                      leading: const Icon(
+                                          Icons.photo_library, size: 40),
+                                      title: const Text(
+                                        'Galerie auswählen',
+                                        style: TextStyle(fontSize: 20),
+                                      ),
+                                      onTap: () {
+                                        Navigator.pop(context);
+                                        _getImage(ImageSource.gallery);
+                                      },
+                                    ),
                                   ),
-                                ],
-                              ),
-                            );
-                          },
-                          child: Text(
-                            'Bild hinzufügen',
-                            style: TextStyle(
-                              color: Theme.of(context).primaryColor,
-                              fontWeight: FontWeight.bold,
+                                ),
+                                Center(
+                                  child: Container(
+                                    height: 80,
+                                    child: ListTile(
+                                      leading: const Icon(
+                                          Icons.camera_alt, size: 40),
+                                      title: const Text(
+                                        'Kamera verwenden',
+                                        style: TextStyle(fontSize: 20),
+                                      ),
+                                      onTap: () {
+                                        Navigator.pop(context);
+                                        _getImage(ImageSource.camera);
+                                      },
+                                    ),
+                                  ),
+                                ),
+                              ],
                             ),
-                          ),
-                        ),
+                      );
+                    },
+                    child: Text(
+                      'Bild hinzufügen',
+                      style: TextStyle(
+                        color: Theme
+                            .of(context)
+                            .primaryColor,
+                        fontWeight: FontWeight.bold,
                       ),
                     ),
+                  ),
+                ),
+              ),
             ],
           ),
         ),

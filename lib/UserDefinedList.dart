@@ -26,12 +26,13 @@ class UserDefinedItem extends StatelessWidget {
           Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (context) => DetailPage(
-                title: title,
-                datum: datum,
-                description: description,
-                image: image != null ? image! : null,
-              ),
+              builder: (context) =>
+                  DetailPage(
+                    title: title,
+                    datum: datum,
+                    description: description,
+                    image: image != null ? image! : null,
+                  ),
             ),
           );
         },
@@ -59,7 +60,8 @@ class UserDefinedItem extends StatelessWidget {
                             overflow: TextOverflow.ellipsis,
                             style: const TextStyle(
                                 fontSize: 20,
-                                fontWeight: FontWeight.bold// beliebige Schriftgröße
+                                fontWeight: FontWeight
+                                    .bold // beliebige Schriftgröße
                             ),
                           ),
                         ),
@@ -73,7 +75,8 @@ class UserDefinedItem extends StatelessWidget {
                     ),
                   ),
                   Padding(
-                    padding: const EdgeInsets.all(8.0),  // feste Höhe für 2 Zeilen
+                    padding: const EdgeInsets.all(8.0),
+                    // feste Höhe für 2 Zeilen
                     child: Text(
                       description,
                       maxLines: 3,
@@ -264,57 +267,6 @@ class _CitizensForumState extends State<CitizensForum> {
               itemBuilder: (BuildContext context, int index) {
                 final Map<String, dynamic> data = documents[index].data();
                 final DateTime createdDate = data['createdDate'].toDate();
-                final formattedDate = DateFormat.yMd().format(createdDate);
-                return UserDefinedItem(
-                  title: data['title'] ?? '',
-                  datum: formattedDate,
-                  description: data['description'] ?? '',
-                  image: Image.network((data['imageUrl'])),
-                );
-              },
-            );
-        }
-      },
-    );
-  }
-}
-
-
-/*class NewsList extends StatefulWidget {
-  const NewsList({Key? key}) : super(key: key);
-
-  @override
-  _NewsListState createState() => _NewsListState();
-}
-
-class _NewsListState extends State<NewsList> {
-  final FirebaseFirestore firestore = FirebaseFirestore.instance;
-  late Stream<QuerySnapshot> newsStream;
-
-  @override
-  void initState() {
-    super.initState();
-    newsStream = firestore.collection('News').snapshots();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return StreamBuilder<QuerySnapshot>(
-      stream: newsStream,
-      builder: (BuildContext context, AsyncSnapshot<QuerySnapshot> snapshot) {
-        if (snapshot.hasError) {
-          return Text('Error: ${snapshot.error}');
-        }
-        switch (snapshot.connectionState) {
-          case ConnectionState.waiting:
-            return const Text('Loading...');
-          default:
-            final List<QueryDocumentSnapshot> documents = snapshot.data!.docs;
-            return ListView.builder(
-              itemCount: documents.length,
-              itemBuilder: (BuildContext context, int index) {
-                final Map<String, dynamic> data = documents[index].data()! as Map<String, dynamic>;
-                final DateTime createdDate = data['createdDate'].toDate();
                 final formattedDate = DateFormat('dd.MM.yyyy').format(createdDate);
                 return UserDefinedItem(
                   title: data['title'] ?? '',
@@ -329,103 +281,3 @@ class _NewsListState extends State<NewsList> {
     );
   }
 }
-
-
-class IssueList extends StatefulWidget {
-  const IssueList({Key? key}) : super(key: key);
-
-  @override
-  _IssueListState createState() => _IssueListState();
-}
-
-class _IssueListState extends State<IssueList> {
-  final FirebaseFirestore firestore = FirebaseFirestore.instance;
-  late Stream<QuerySnapshot> issueStream;
-
-  @override
-  void initState() {
-    super.initState();
-    issueStream = firestore.collection('Issues').snapshots();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return StreamBuilder<QuerySnapshot>(
-      stream: issueStream,
-      builder: (BuildContext context, AsyncSnapshot<QuerySnapshot> snapshot) {
-        if (snapshot.hasError) {
-          return Text('Error: ${snapshot.error}');
-        }
-        switch (snapshot.connectionState) {
-          case ConnectionState.waiting:
-            return const Text('Loading...');
-          default:
-            final List<QueryDocumentSnapshot> documents = snapshot.data!.docs;
-            return ListView.builder(
-              itemCount: documents.length,
-              itemBuilder: (BuildContext context, int index) {
-                final Map<String, dynamic> data = documents[index].data()! as Map<String, dynamic>;
-                final DateTime createdDate = data['createdDate'].toDate();
-                final formattedDate = DateFormat('dd.MM.yyyy').format(createdDate);
-                return UserDefinedItem(
-                  title: data['title'] ?? '',
-                  datum: formattedDate,
-                  description: data['description'] ?? '',
-                  image: Image.network((data['imageUrl'])),
-                );
-              },
-            );
-        }
-      },
-    );
-  }
-}
-class CitizensForum extends StatefulWidget {
-  const CitizensForum({Key? key}) : super(key: key);
-
-  @override
-  _CitizensForumState createState() => _CitizensForumState();
-}
-
-class _CitizensForumState extends State<CitizensForum> {
-  final FirebaseFirestore firestore = FirebaseFirestore.instance;
-  late Stream<QuerySnapshot<Map<String, dynamic>>> citizenStream;
-
-  @override
-  void initState() {
-    super.initState();
-    citizenStream = firestore.collection('CitizensForum').snapshots();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
-      stream: citizenStream,
-      builder: (BuildContext context, AsyncSnapshot<QuerySnapshot<Map<String, dynamic>>> snapshot) {
-        if (snapshot.hasError) {
-          return Text('Error: ${snapshot.error}');
-        }
-        switch (snapshot.connectionState) {
-          case ConnectionState.waiting:
-            return const Text('Loading...');
-          default:
-            final List<QueryDocumentSnapshot<Map<String, dynamic>>> documents = snapshot.data!.docs;
-            return ListView.builder(
-              itemCount: documents.length,
-              itemBuilder: (BuildContext context, int index) {
-                final Map<String, dynamic> data = documents[index].data();
-                final DateTime createdDate = data['createdDate'].toDate();
-                final formattedDate = DateFormat.yMd().format(createdDate);
-                return UserDefinedItem(
-                  title: data['title'] ?? '',
-                  datum: formattedDate,
-                  description: data['description'] ?? '',
-                  image: Image.network((data['imageUrl'])),
-                );
-              },
-            );
-        }
-      },
-    );
-  }
-}*/
