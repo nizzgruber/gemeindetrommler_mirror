@@ -45,13 +45,26 @@ class _AddScreenState extends State<AddScreen> {
 
 
     // Das neue Element in der Firestore-Sammlung "Issues" speichern
-    if(_selectedIndex == 1)
+    if(_selectedIndex == 0)
     {
-      Reference ref = FirebaseStorage.instance.ref().child("Issues/${DateTime.now().toString()}");
+      Reference ref = FirebaseStorage.instance.ref().child("CitizensForum/${DateTime.now().toString()}");
       UploadTask uploadTask = ref.putFile(imageFile);
       String imageUrl = await (await uploadTask).ref.getDownloadURL();
 
-      await FirebaseFirestore.instance.collection("Issues").add({
+      await FirebaseFirestore.instance.collection("CitizensForum").add({
+        "title": title,
+        "description": description,
+        "imageUrl": imageUrl,
+        "createdDate": DateTime.now(),
+      });
+    }
+    else if(_selectedIndex == 1)
+    {
+      Reference ref = FirebaseStorage.instance.ref().child("News/${DateTime.now().toString()}");
+      UploadTask uploadTask = ref.putFile(imageFile);
+      String imageUrl = await (await uploadTask).ref.getDownloadURL();
+
+      await FirebaseFirestore.instance.collection("News").add({
         "title": title,
         "description": description,
         "imageUrl": imageUrl,
@@ -60,10 +73,10 @@ class _AddScreenState extends State<AddScreen> {
     }
     else
     {
-      Reference ref = FirebaseStorage.instance.ref().child("News/${DateTime.now().toString()}");
+      Reference ref = FirebaseStorage.instance.ref().child("Issues/${DateTime.now().toString()}");
       UploadTask uploadTask = ref.putFile(imageFile);
       String imageUrl = await (await uploadTask).ref.getDownloadURL();
-      await FirebaseFirestore.instance.collection("News").add({
+      await FirebaseFirestore.instance.collection("Issues").add({
         "title": title,
         "description": description,
         "imageUrl": imageUrl,

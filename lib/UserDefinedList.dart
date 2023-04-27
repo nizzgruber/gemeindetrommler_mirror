@@ -93,11 +93,194 @@ class UserDefinedItem extends StatelessWidget {
   }
 }
 
-
-
-
-
 class NewsList extends StatefulWidget {
+  const NewsList({Key? key}) : super(key: key);
+
+  @override
+  _NewsListState createState() => _NewsListState();
+}
+
+class _NewsListState extends State<NewsList> {
+  final FirebaseFirestore firestore = FirebaseFirestore.instance;
+  late Stream<QuerySnapshot> newsStream;
+
+  @override
+  void initState() {
+    super.initState();
+
+    // Enable persistence
+    firestore.enablePersistence();
+
+    // Enable network
+    firestore.settings = Settings(cacheSizeBytes: Settings.CACHE_SIZE_UNLIMITED);
+
+    // Configure the stream to use the cache first and then the server
+    newsStream = firestore
+        .collection('News')
+        .orderBy('createdDate', descending: true)
+        .snapshots(includeMetadataChanges: true);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return StreamBuilder<QuerySnapshot>(
+      stream: newsStream,
+      builder: (BuildContext context, AsyncSnapshot<QuerySnapshot> snapshot) {
+        if (snapshot.hasError) {
+          return Text('Error: ${snapshot.error}');
+        }
+        switch (snapshot.connectionState) {
+          case ConnectionState.waiting:
+            return const Text('Loading...');
+          default:
+            final List<QueryDocumentSnapshot> documents = snapshot.data!.docs;
+            return ListView.builder(
+              itemCount: documents.length,
+              itemBuilder: (BuildContext context, int index) {
+                final Map<String, dynamic> data =
+                documents[index].data()! as Map<String, dynamic>;
+                final DateTime createdDate =
+                data['createdDate'].toDate();
+                final formattedDate =
+                DateFormat('dd.MM.yyyy').format(createdDate);
+                return UserDefinedItem(
+                  title: data['title'] ?? '',
+                  datum: formattedDate,
+                  description: data['description'] ?? '',
+                  image: Image.network((data['imageUrl'])),
+                );
+              },
+            );
+        }
+      },
+    );
+  }
+}
+class IssueList extends StatefulWidget {
+  const IssueList({Key? key}) : super(key: key);
+
+  @override
+  _IssueListState createState() => _IssueListState();
+}
+class _IssueListState extends State<IssueList> {
+  final FirebaseFirestore firestore = FirebaseFirestore.instance;
+  late Stream<QuerySnapshot> issueStream;
+
+  @override
+  void initState() {
+    super.initState();
+
+    // Enable persistence
+    firestore.enablePersistence();
+
+    // Enable network
+    firestore.settings = Settings(cacheSizeBytes: Settings.CACHE_SIZE_UNLIMITED);
+
+    // Configure the stream to use the cache first and then the server
+    issueStream = firestore
+        .collection('Issues')
+        .orderBy('createdDate', descending: true)
+        .snapshots(includeMetadataChanges: true);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return StreamBuilder<QuerySnapshot>(
+      stream: issueStream,
+      builder: (BuildContext context, AsyncSnapshot<QuerySnapshot> snapshot) {
+        if (snapshot.hasError) {
+          return Text('Error: ${snapshot.error}');
+        }
+        switch (snapshot.connectionState) {
+          case ConnectionState.waiting:
+            return const Text('Loading...');
+          default:
+            final List<QueryDocumentSnapshot> documents = snapshot.data!.docs;
+            return ListView.builder(
+              itemCount: documents.length,
+              itemBuilder: (BuildContext context, int index) {
+                final Map<String, dynamic> data =
+                documents[index].data()! as Map<String, dynamic>;
+                final DateTime createdDate =
+                data['createdDate'].toDate();
+                final formattedDate =
+                DateFormat('dd.MM.yyyy').format(createdDate);
+                return UserDefinedItem(
+                  title: data['title'] ?? '',
+                  datum: formattedDate,
+                  description: data['description'] ?? '',
+                  image: Image.network((data['imageUrl'])),
+                );
+              },
+            );
+        }
+      },
+    );
+  }
+}
+class CitizensForum extends StatefulWidget {
+  const CitizensForum({Key? key}) : super(key: key);
+
+  @override
+  _CitizensForumState createState() => _CitizensForumState();
+}
+
+class _CitizensForumState extends State<CitizensForum> {
+  final FirebaseFirestore firestore = FirebaseFirestore.instance;
+  late Stream<QuerySnapshot<Map<String, dynamic>>> citizenStream;
+
+  @override
+  void initState() {
+    super.initState();
+
+    // Enable persistence
+    firestore.enablePersistence();
+
+    // Enable network
+    firestore.settings = Settings(cacheSizeBytes: Settings.CACHE_SIZE_UNLIMITED);
+
+    // Configure the stream to use the cache first and then the server
+    citizenStream = firestore
+        .collection('CitizensForum')
+        .orderBy('createdDate', descending: true)
+        .snapshots(includeMetadataChanges: true);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+      stream: citizenStream,
+      builder: (BuildContext context, AsyncSnapshot<QuerySnapshot<Map<String, dynamic>>> snapshot) {
+        if (snapshot.hasError) {
+          return Text('Error: ${snapshot.error}');
+        }
+        switch (snapshot.connectionState) {
+          case ConnectionState.waiting:
+            return const Text('Loading...');
+          default:
+            final List<QueryDocumentSnapshot<Map<String, dynamic>>> documents = snapshot.data!.docs;
+            return ListView.builder(
+              itemCount: documents.length,
+              itemBuilder: (BuildContext context, int index) {
+                final Map<String, dynamic> data = documents[index].data();
+                final DateTime createdDate = data['createdDate'].toDate();
+                final formattedDate = DateFormat.yMd().format(createdDate);
+                return UserDefinedItem(
+                  title: data['title'] ?? '',
+                  datum: formattedDate,
+                  description: data['description'] ?? '',
+                  image: Image.network((data['imageUrl'])),
+                );
+              },
+            );
+        }
+      },
+    );
+  }
+}
+
+
+/*class NewsList extends StatefulWidget {
   const NewsList({Key? key}) : super(key: key);
 
   @override
@@ -201,12 +384,12 @@ class CitizensForum extends StatefulWidget {
   const CitizensForum({Key? key}) : super(key: key);
 
   @override
-  _CitizensForum createState() => _CitizensForum();
+  _CitizensForumState createState() => _CitizensForumState();
 }
 
-class _CitizensForum extends State<IssueList> {
+class _CitizensForumState extends State<CitizensForum> {
   final FirebaseFirestore firestore = FirebaseFirestore.instance;
-  late Stream<QuerySnapshot> citizenStream;
+  late Stream<QuerySnapshot<Map<String, dynamic>>> citizenStream;
 
   @override
   void initState() {
@@ -216,9 +399,9 @@ class _CitizensForum extends State<IssueList> {
 
   @override
   Widget build(BuildContext context) {
-    return StreamBuilder<QuerySnapshot>(
+    return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
       stream: citizenStream,
-      builder: (BuildContext context, AsyncSnapshot<QuerySnapshot> snapshot) {
+      builder: (BuildContext context, AsyncSnapshot<QuerySnapshot<Map<String, dynamic>>> snapshot) {
         if (snapshot.hasError) {
           return Text('Error: ${snapshot.error}');
         }
@@ -226,13 +409,13 @@ class _CitizensForum extends State<IssueList> {
           case ConnectionState.waiting:
             return const Text('Loading...');
           default:
-            final List<QueryDocumentSnapshot> documents = snapshot.data!.docs;
+            final List<QueryDocumentSnapshot<Map<String, dynamic>>> documents = snapshot.data!.docs;
             return ListView.builder(
               itemCount: documents.length,
               itemBuilder: (BuildContext context, int index) {
-                final Map<String, dynamic> data = documents[index].data()! as Map<String, dynamic>;
+                final Map<String, dynamic> data = documents[index].data();
                 final DateTime createdDate = data['createdDate'].toDate();
-                final formattedDate = DateFormat('dd.MM.yyyy').format(createdDate);
+                final formattedDate = DateFormat.yMd().format(createdDate);
                 return UserDefinedItem(
                   title: data['title'] ?? '',
                   datum: formattedDate,
@@ -245,4 +428,4 @@ class _CitizensForum extends State<IssueList> {
       },
     );
   }
-}
+}*/
