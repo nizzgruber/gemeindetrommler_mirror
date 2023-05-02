@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'DetailPage.dart';
@@ -7,14 +8,14 @@ class UserDefinedItem extends StatelessWidget {
   final String title;
   final String datum;
   final String description;
-  final Image? image;
+  final String imageUrl;
 
   const UserDefinedItem({
     Key? key,
     required this.title,
     required this.description,
     required this.datum,
-    this.image,
+    required this.imageUrl,
   }) : super(key: key);
 
   @override
@@ -31,7 +32,7 @@ class UserDefinedItem extends StatelessWidget {
                     title: title,
                     datum: datum,
                     description: description,
-                    image: image != null ? image! : null,
+                    imageUrl: imageUrl,
                   ),
             ),
           );
@@ -42,7 +43,19 @@ class UserDefinedItem extends StatelessWidget {
             SizedBox(
               width: 120,
               height: 120,
-              child: image,
+              child: CachedNetworkImage(
+                imageUrl: imageUrl,
+                placeholder: (context, url) => const Center(
+                  child: SizedBox(
+                    width: 50,
+                    height: 50,
+                    child: CircularProgressIndicator(),
+                  ),
+                ),
+                errorWidget: (context, url, error) => Icon(Icons.error),
+              ),
+
+
             ),
             Flexible(
               flex: 1,
@@ -60,15 +73,13 @@ class UserDefinedItem extends StatelessWidget {
                             overflow: TextOverflow.ellipsis,
                             style: const TextStyle(
                                 fontSize: 20,
-                                fontWeight: FontWeight
-                                    .bold // beliebige Schriftgröße
-                            ),
+                                fontWeight: FontWeight.bold),
                           ),
                         ),
                         Text(
                           datum,
                           style: const TextStyle(
-                            fontSize: 15, // beliebige Schriftgröße
+                            fontSize: 15,
                           ),
                         ),
                       ],
@@ -76,7 +87,6 @@ class UserDefinedItem extends StatelessWidget {
                   ),
                   Padding(
                     padding: const EdgeInsets.all(8.0),
-                    // feste Höhe für 2 Zeilen
                     child: Text(
                       description,
                       maxLines: 3,
@@ -95,6 +105,12 @@ class UserDefinedItem extends StatelessWidget {
     );
   }
 }
+
+// ...
+
+// Ändern Sie die Verwendung von Image.network in UserDefinedItem-Widgets in Ihren ListView.builder-Aufrufen:
+
+
 
 class NewsList extends StatefulWidget {
   const NewsList({Key? key}) : super(key: key);
@@ -150,7 +166,7 @@ class _NewsListState extends State<NewsList> {
                   title: data['title'] ?? '',
                   datum: formattedDate,
                   description: data['description'] ?? '',
-                  image: Image.network((data['imageUrl'])),
+                  imageUrl: data['imageUrl'] ?? '',
                 );
               },
             );
@@ -212,7 +228,7 @@ class _IssueListState extends State<IssueList> {
                   title: data['title'] ?? '',
                   datum: formattedDate,
                   description: data['description'] ?? '',
-                  image: Image.network((data['imageUrl'])),
+                  imageUrl: data['imageUrl'] ?? '',
                 );
               },
             );
@@ -272,7 +288,7 @@ class _CitizensForumState extends State<CitizensForum> {
                   title: data['title'] ?? '',
                   datum: formattedDate,
                   description: data['description'] ?? '',
-                  image: Image.network((data['imageUrl'])),
+                  imageUrl: data['imageUrl'] ?? '',
                 );
               },
             );
