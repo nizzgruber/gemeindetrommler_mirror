@@ -30,16 +30,30 @@ class _AddScreenState extends State<AddScreen> {
     _selectedIndex = widget.initialIndex;
   }
 
+  Future<bool> isFileSizeValid(File file, int maxSizeInMB) async {
+    final fileSize = await file.length();
+    final maxSizeInBytes = maxSizeInMB * 1024 * 1024;
+    return fileSize <= maxSizeInBytes;
+  }
 
   Future<void> _getImage(ImageSource source) async {
     final pickedFile = await ImagePicker().pickImage(source: source);
 
     if (pickedFile != null) {
-      setState(() {
-        _imageFile = File(pickedFile.path);
-      });
+      final tempFile = File(pickedFile.path);
+      final bool isValid = await isFileSizeValid(tempFile, 10);
+      if (isValid) {
+        setState(() {
+          _imageFile = tempFile;
+        });
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Die Dateigröße darf maximal 10 MB betragen.')),
+        );
+      }
     }
   }
+
   Future<void> addNewElementToFirestore(String title, String description, File imageFile) async {
     String collectionName;
     if (_selectedIndex == 0) {
