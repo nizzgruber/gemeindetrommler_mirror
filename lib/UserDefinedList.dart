@@ -118,7 +118,6 @@ class NewsList extends StatefulWidget {
   @override
   _NewsListState createState() => _NewsListState();
 }
-
 class _NewsListState extends State<NewsList> {
   final FirebaseFirestore firestore = FirebaseFirestore.instance;
   late Stream<QuerySnapshot> newsStream;
@@ -140,6 +139,14 @@ class _NewsListState extends State<NewsList> {
         .snapshots(includeMetadataChanges: true);
   }
 
+  Future<void> _deleteNews(String newsId) async {
+    try {
+      await firestore.collection('News').doc(newsId).delete();
+    } catch (e) {
+      print('Error deleting news: $e');
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return StreamBuilder<QuerySnapshot>(
@@ -158,15 +165,32 @@ class _NewsListState extends State<NewsList> {
               itemBuilder: (BuildContext context, int index) {
                 final Map<String, dynamic> data =
                 documents[index].data()! as Map<String, dynamic>;
-                final DateTime createdDate =
-                data['createdDate'].toDate();
+                final String newsId = documents[index].id;
+                final DateTime createdDate = data['createdDate'].toDate();
                 final formattedDate =
                 DateFormat('dd.MM.yyyy').format(createdDate);
-                return UserDefinedItem(
-                  title: data['title'] ?? '',
-                  datum: formattedDate,
-                  description: data['description'] ?? '',
-                  imageUrl: data['imageUrl'] ?? '',
+                return Dismissible(
+                  key: UniqueKey(),
+                  direction: DismissDirection.endToStart,
+                  onDismissed: (direction) {
+                    _deleteNews(newsId);
+                  },
+                  background: Container(
+                    color: Colors.red,
+                    child: Align(
+                      alignment: Alignment.centerRight,
+                      child: Padding(
+                        padding: EdgeInsets.only(right: 16),
+                        child: Icon(Icons.delete, color: Colors.white),
+                      ),
+                    ),
+                  ),
+                  child: UserDefinedItem(
+                    title: data['title'] ?? '',
+                    datum: formattedDate,
+                    description: data['description'] ?? '',
+                    imageUrl: data['imageUrl'] ?? '',
+                  ),
                 );
               },
             );
@@ -175,6 +199,8 @@ class _NewsListState extends State<NewsList> {
     );
   }
 }
+
+
 class IssueList extends StatefulWidget {
   const IssueList({Key? key}) : super(key: key);
 
