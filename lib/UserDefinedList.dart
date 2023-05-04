@@ -1,5 +1,6 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'DetailPage.dart';
 import 'package:intl/intl.dart';
@@ -27,13 +28,12 @@ class UserDefinedItem extends StatelessWidget {
           Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (context) =>
-                  DetailPage(
-                    title: title,
-                    datum: datum,
-                    description: description,
-                    imageUrl: imageUrl,
-                  ),
+              builder: (context) => DetailPage(
+                title: title,
+                datum: datum,
+                description: description,
+                imageUrl: imageUrl,
+              ),
             ),
           );
         },
@@ -54,8 +54,6 @@ class UserDefinedItem extends StatelessWidget {
                 ),
                 errorWidget: (context, url, error) => Icon(Icons.error),
               ),
-
-
             ),
             Flexible(
               flex: 1,
@@ -72,8 +70,7 @@ class UserDefinedItem extends StatelessWidget {
                             title,
                             overflow: TextOverflow.ellipsis,
                             style: const TextStyle(
-                                fontSize: 20,
-                                fontWeight: FontWeight.bold),
+                                fontSize: 20, fontWeight: FontWeight.bold),
                           ),
                         ),
                         Text(
@@ -110,8 +107,6 @@ class UserDefinedItem extends StatelessWidget {
 
 // Ändern Sie die Verwendung von Image.network in UserDefinedItem-Widgets in Ihren ListView.builder-Aufrufen:
 
-
-
 class NewsList extends StatefulWidget {
   const NewsList({Key? key}) : super(key: key);
 
@@ -131,13 +126,27 @@ class _NewsListState extends State<NewsList> {
     firestore.enablePersistence();
 
     // Enable network
-    firestore.settings = Settings(cacheSizeBytes: Settings.CACHE_SIZE_UNLIMITED);
+    firestore.settings =
+        Settings(cacheSizeBytes: Settings.CACHE_SIZE_UNLIMITED);
 
     // Configure the stream to use the cache first and then the server
     newsStream = firestore
         .collection('News')
         .orderBy('createdDate', descending: true)
         .snapshots(includeMetadataChanges: true);
+  }
+
+  Future<void> _deleteNews(String newsId, String? imageUrl) async {
+    try {
+      if (imageUrl != null) {
+        // Löschen Sie das Bild vom Firebase Storage
+        await FirebaseStorage.instance.refFromURL(imageUrl).delete();
+      }
+      // Löschen Sie das Dokument von der Firestore-Kollektion
+      await firestore.collection('News').doc(newsId).delete();
+    } catch (e) {
+      print('Error deleting news: $e');
+    }
   }
 
   @override
@@ -157,16 +166,33 @@ class _NewsListState extends State<NewsList> {
               itemCount: documents.length,
               itemBuilder: (BuildContext context, int index) {
                 final Map<String, dynamic> data =
-                documents[index].data()! as Map<String, dynamic>;
-                final DateTime createdDate =
-                data['createdDate'].toDate();
+                    documents[index].data()! as Map<String, dynamic>;
+                final String newsId = documents[index].id;
+                final DateTime createdDate = data['createdDate'].toDate();
                 final formattedDate =
-                DateFormat('dd.MM.yyyy').format(createdDate);
-                return UserDefinedItem(
-                  title: data['title'] ?? '',
-                  datum: formattedDate,
-                  description: data['description'] ?? '',
-                  imageUrl: data['imageUrl'] ?? '',
+                    DateFormat('dd.MM.yyyy').format(createdDate);
+                return Dismissible(
+                  key: UniqueKey(),
+                  direction: DismissDirection.endToStart,
+                  onDismissed: (direction) {
+                    _deleteNews(newsId, data['imageUrl']);
+                  },
+                  background: Container(
+                    color: Colors.red,
+                    child: const Align(
+                      alignment: Alignment.centerRight,
+                      child: Padding(
+                        padding: EdgeInsets.only(right: 16),
+                        child: Icon(Icons.delete, color: Colors.white),
+                      ),
+                    ),
+                  ),
+                  child: UserDefinedItem(
+                    title: data['title'] ?? '',
+                    datum: formattedDate,
+                    description: data['description'] ?? '',
+                    imageUrl: data['imageUrl'] ?? '',
+                  ),
                 );
               },
             );
@@ -175,12 +201,14 @@ class _NewsListState extends State<NewsList> {
     );
   }
 }
+
 class IssueList extends StatefulWidget {
   const IssueList({Key? key}) : super(key: key);
 
   @override
   _IssueListState createState() => _IssueListState();
 }
+
 class _IssueListState extends State<IssueList> {
   final FirebaseFirestore firestore = FirebaseFirestore.instance;
   late Stream<QuerySnapshot> issueStream;
@@ -193,13 +221,24 @@ class _IssueListState extends State<IssueList> {
     firestore.enablePersistence();
 
     // Enable network
-    firestore.settings = Settings(cacheSizeBytes: Settings.CACHE_SIZE_UNLIMITED);
+    firestore.settings =
+        Settings(cacheSizeBytes: Settings.CACHE_SIZE_UNLIMITED);
 
     // Configure the stream to use the cache first and then the server
     issueStream = firestore
         .collection('Issues')
         .orderBy('createdDate', descending: true)
         .snapshots(includeMetadataChanges: true);
+  }
+
+  Future<void> _deleteIssue(String issueId, String imageUrl) async {
+    try {
+      final Reference ref = FirebaseStorage.instance.refFromURL(imageUrl);
+      await ref.delete();
+      await firestore.collection('Issues').doc(issueId).delete();
+    } catch (e) {
+      print('Error deleting issue: $e');
+    }
   }
 
   @override
@@ -219,16 +258,33 @@ class _IssueListState extends State<IssueList> {
               itemCount: documents.length,
               itemBuilder: (BuildContext context, int index) {
                 final Map<String, dynamic> data =
-                documents[index].data()! as Map<String, dynamic>;
-                final DateTime createdDate =
-                data['createdDate'].toDate();
+                    documents[index].data()! as Map<String, dynamic>;
+                final String issueId = documents[index].id;
+                final DateTime createdDate = data['createdDate'].toDate();
                 final formattedDate =
-                DateFormat('dd.MM.yyyy').format(createdDate);
-                return UserDefinedItem(
-                  title: data['title'] ?? '',
-                  datum: formattedDate,
-                  description: data['description'] ?? '',
-                  imageUrl: data['imageUrl'] ?? '',
+                    DateFormat('dd.MM.yyyy').format(createdDate);
+                return Dismissible(
+                  key: UniqueKey(),
+                  direction: DismissDirection.endToStart,
+                  onDismissed: (direction) {
+                    _deleteIssue(issueId, data['imageUrl']);
+                  },
+                  background: Container(
+                    color: Colors.red,
+                    child: const Align(
+                      alignment: Alignment.centerRight,
+                      child: Padding(
+                        padding: EdgeInsets.only(right: 16),
+                        child: Icon(Icons.delete, color: Colors.white),
+                      ),
+                    ),
+                  ),
+                  child: UserDefinedItem(
+                    title: data['title'] ?? '',
+                    datum: formattedDate,
+                    description: data['description'] ?? '',
+                    imageUrl: data['imageUrl'] ?? '',
+                  ),
                 );
               },
             );
@@ -237,6 +293,7 @@ class _IssueListState extends State<IssueList> {
     );
   }
 }
+
 class CitizensForum extends StatefulWidget {
   const CitizensForum({Key? key}) : super(key: key);
 
@@ -256,7 +313,8 @@ class _CitizensForumState extends State<CitizensForum> {
     firestore.enablePersistence();
 
     // Enable network
-    firestore.settings = Settings(cacheSizeBytes: Settings.CACHE_SIZE_UNLIMITED);
+    firestore.settings =
+        Settings(cacheSizeBytes: Settings.CACHE_SIZE_UNLIMITED);
 
     // Configure the stream to use the cache first and then the server
     citizenStream = firestore
@@ -265,11 +323,22 @@ class _CitizensForumState extends State<CitizensForum> {
         .snapshots(includeMetadataChanges: true);
   }
 
+  Future<void> deleteDocument(String documentId, String? imageUrl) async {
+    // Delete document
+    await firestore.collection('CitizensForum').doc(documentId).delete();
+
+    // Delete image file
+    if (imageUrl != null) {
+      await FirebaseStorage.instance.refFromURL(imageUrl).delete();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
       stream: citizenStream,
-      builder: (BuildContext context, AsyncSnapshot<QuerySnapshot<Map<String, dynamic>>> snapshot) {
+      builder: (BuildContext context,
+          AsyncSnapshot<QuerySnapshot<Map<String, dynamic>>> snapshot) {
         if (snapshot.hasError) {
           return Text('Error: ${snapshot.error}');
         }
@@ -277,18 +346,33 @@ class _CitizensForumState extends State<CitizensForum> {
           case ConnectionState.waiting:
             return const Text('Loading...');
           default:
-            final List<QueryDocumentSnapshot<Map<String, dynamic>>> documents = snapshot.data!.docs;
+            final List<QueryDocumentSnapshot<Map<String, dynamic>>> documents =
+                snapshot.data!.docs;
             return ListView.builder(
               itemCount: documents.length,
               itemBuilder: (BuildContext context, int index) {
                 final Map<String, dynamic> data = documents[index].data();
+                final String documentId = documents[index].id;
                 final DateTime createdDate = data['createdDate'].toDate();
-                final formattedDate = DateFormat('dd.MM.yyyy').format(createdDate);
-                return UserDefinedItem(
-                  title: data['title'] ?? '',
-                  datum: formattedDate,
-                  description: data['description'] ?? '',
-                  imageUrl: data['imageUrl'] ?? '',
+                final formattedDate =
+                    DateFormat('dd.MM.yyyy').format(createdDate);
+                return Dismissible(
+                  key: Key(documentId),
+                  direction: DismissDirection.endToStart,
+                  background: Container(
+                    alignment: Alignment.centerRight,
+                    padding: const EdgeInsets.only(right: 16.0),
+                    color: Colors.red,
+                    child: const Icon(Icons.delete, color: Colors.white),
+                  ),
+                  onDismissed: (_) =>
+                      deleteDocument(documentId, data['imageUrl']),
+                  child: UserDefinedItem(
+                    title: data['title'] ?? '',
+                    datum: formattedDate,
+                    description: data['description'] ?? '',
+                    imageUrl: data['imageUrl'] ?? '',
+                  ),
                 );
               },
             );
