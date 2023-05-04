@@ -54,7 +54,7 @@ class _AddScreenState extends State<AddScreen> {
     }
   }
 
-  Future<void> addNewElementToFirestore(String title, String description, File imageFile) async {
+  Future<void> addNewElementToFirestore(String title, String description, File imageFile, {required Function(bool) onComplete}) async {
     String collectionName;
     if (_selectedIndex == 0) {
       collectionName = "CitizensForum";
@@ -65,13 +65,21 @@ class _AddScreenState extends State<AddScreen> {
     }
 
     String imageUrl = await uploadImageToFirebaseStorage(imageFile, collectionName);
+    try
+    {
+      await FirebaseFirestore.instance.collection(collectionName).add({
+        "title": title,
+        "description": description,
+        "imageUrl": imageUrl,
+        "createdDate": DateTime.now(),
+      });
+      onComplete(true);
+    }
+    catch(e)
+    {
+      onComplete(false);
+    }
 
-    await FirebaseFirestore.instance.collection(collectionName).add({
-      "title": title,
-      "description": description,
-      "imageUrl": imageUrl,
-      "createdDate": DateTime.now(),
-    });
   }
 
   Future<String> uploadImageToFirebaseStorage(File imageFile, String collectionName) async {
@@ -115,24 +123,21 @@ class _AddScreenState extends State<AddScreen> {
             child: IconButton(
               icon: const Icon(Icons.check),
               onPressed: () async {
-                if (_formKey.currentState!.validate() && _imageFile != null &&
-                    !_uploading) {
+                if (_formKey.currentState!.validate() && _imageFile != null && !_uploading) {
                   setState(() {
                     _uploading = true;
                   });
-                  try {
-                    await addNewElementToFirestore(
-                        _titleController.text, _descriptionController.text,
-                        _imageFile!);
-                    Navigator.pop(context);
-                  } catch (e) {
-                    print(e);
-                    // Fehlerbehandlung hier
-                  } finally {
+                  Navigator.pop(context); // Fenster direkt schließen, nachdem der Upload-Button gedrückt wurde.
+                  await addNewElementToFirestore(_titleController.text, _descriptionController.text, _imageFile!, onComplete: (bool success) {
                     setState(() {
                       _uploading = false;
                     });
-                  }
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(success ? 'Upload erfolgreich.' : 'Upload fehlgeschlagen.'),
+                      ),
+                    );
+                  });
                 }
               },
             ),
