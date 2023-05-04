@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
@@ -5,14 +6,14 @@ class DetailPage extends StatelessWidget {
   final String title;
   final String datum;
   final String description;
-  final Image? image;
+  final String imageUrl;
 
   const DetailPage({
     Key? key,
     required this.title,
     required this.datum,
     required this.description,
-    required this.image,
+    required this.imageUrl,
   }) : super(key: key);
 
   @override
@@ -27,7 +28,17 @@ class DetailPage extends StatelessWidget {
           children: [
             Container(
               padding: const EdgeInsets.all(8.0),
-              child: image,
+              child: CachedNetworkImage(
+                imageUrl: imageUrl,
+                placeholder: (context, url) => const Center(
+                  child: SizedBox(
+                    width: 50,
+                    height: 50,
+                    child: CircularProgressIndicator(),
+                  ),
+                ),
+                errorWidget: (context, url, error) => Icon(Icons.error),
+              ),
             ),
             Container(
               padding: const EdgeInsets.all(8.0),
@@ -63,60 +74,3 @@ class DetailPage extends StatelessWidget {
     );
   }
 }
-
-
-
-
-
-/*import 'package:flutter/material.dart';
-
-class DetailPage extends StatelessWidget {
-  final String title;
-  final String description;
-  final Image? image;
-
-  const DetailPage({
-    super.key,
-    required this.title,
-    required this.description,
-    required this.image,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(title),
-      ),
-        body: SingleChildScrollView(
-          child: Column(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(8.0),
-                child: image,
-              ),
-              Container(
-                padding: const EdgeInsets.all(8.0),
-                child: Text(
-                  title,
-                  style: const TextStyle(
-                    fontSize: 24,
-                  ),
-                ),
-              ),
-              Container(
-                padding: const EdgeInsets.all(8.0),
-                child: Text(
-                  description,
-                  style: const TextStyle(
-                    fontSize: 18,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-    );
-  }
-}*/
-

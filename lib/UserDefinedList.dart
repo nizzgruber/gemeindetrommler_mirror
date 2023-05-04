@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'DetailPage.dart';
@@ -7,14 +8,14 @@ class UserDefinedItem extends StatelessWidget {
   final String title;
   final String datum;
   final String description;
-  final Image? image;
+  final String imageUrl;
 
   const UserDefinedItem({
     Key? key,
     required this.title,
     required this.description,
     required this.datum,
-    this.image,
+    required this.imageUrl,
   }) : super(key: key);
 
   @override
@@ -26,12 +27,13 @@ class UserDefinedItem extends StatelessWidget {
           Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (context) => DetailPage(
-                title: title,
-                datum: datum,
-                description: description,
-                image: image != null ? image! : null,
-              ),
+              builder: (context) =>
+                  DetailPage(
+                    title: title,
+                    datum: datum,
+                    description: description,
+                    imageUrl: imageUrl,
+                  ),
             ),
           );
         },
@@ -41,7 +43,19 @@ class UserDefinedItem extends StatelessWidget {
             SizedBox(
               width: 120,
               height: 120,
-              child: image,
+              child: CachedNetworkImage(
+                imageUrl: imageUrl,
+                placeholder: (context, url) => const Center(
+                  child: SizedBox(
+                    width: 50,
+                    height: 50,
+                    child: CircularProgressIndicator(),
+                  ),
+                ),
+                errorWidget: (context, url, error) => Icon(Icons.error),
+              ),
+
+
             ),
             Flexible(
               flex: 1,
@@ -59,21 +73,20 @@ class UserDefinedItem extends StatelessWidget {
                             overflow: TextOverflow.ellipsis,
                             style: const TextStyle(
                                 fontSize: 20,
-                                fontWeight: FontWeight.bold// beliebige Schriftgröße
-                            ),
+                                fontWeight: FontWeight.bold),
                           ),
                         ),
                         Text(
                           datum,
                           style: const TextStyle(
-                            fontSize: 15, // beliebige Schriftgröße
+                            fontSize: 15,
                           ),
                         ),
                       ],
                     ),
                   ),
                   Padding(
-                    padding: const EdgeInsets.all(8.0),  // feste Höhe für 2 Zeilen
+                    padding: const EdgeInsets.all(8.0),
                     child: Text(
                       description,
                       maxLines: 3,
@@ -93,6 +106,11 @@ class UserDefinedItem extends StatelessWidget {
   }
 }
 
+// ...
+
+// Ändern Sie die Verwendung von Image.network in UserDefinedItem-Widgets in Ihren ListView.builder-Aufrufen:
+
+
 
 class NewsList extends StatefulWidget {
   const NewsList({Key? key}) : super(key: key);
@@ -108,7 +126,18 @@ class _NewsListState extends State<NewsList> {
   @override
   void initState() {
     super.initState();
-    newsStream = firestore.collection('News').snapshots();
+
+    // Enable persistence
+    firestore.enablePersistence();
+
+    // Enable network
+    firestore.settings = Settings(cacheSizeBytes: Settings.CACHE_SIZE_UNLIMITED);
+
+    // Configure the stream to use the cache first and then the server
+    newsStream = firestore
+        .collection('News')
+        .orderBy('createdDate', descending: true)
+        .snapshots(includeMetadataChanges: true);
   }
 
   @override
@@ -127,130 +156,17 @@ class _NewsListState extends State<NewsList> {
             return ListView.builder(
               itemCount: documents.length,
               itemBuilder: (BuildContext context, int index) {
-                final Map<String, dynamic> data = documents[index].data()! as Map<String, dynamic>;
-                final DateTime createdDate = data['createdDate'].toDate();
-                final formattedDate = DateFormat('dd.MM.yyyy').format(createdDate);
-                return Dismissible(
-                  key: Key(documents[index].id),
-                  direction: DismissDirection.endToStart,
-                  onDismissed: (direction) async {
-                    await firestore.collection('News').doc(documents[index].id).delete();
-                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                      content: Text("News wurde gelöscht"),
-                    ));
-                  },
-                  background: Container(
-                    color: Colors.red,
-                    alignment: Alignment.centerRight,
-                    child: const Icon(
-                      Icons.delete,
-                      color: Colors.white,
-                    ),
-                  ),
-                  child: UserDefinedItem(
-                    title: data['title'] ?? '',
-                    datum: formattedDate,
-                    description: data['description'] ?? '',
-                    image: Image.network((data['imageUrl'])),
-                  ),
-                );
-              },
-            );
-        }
-      },
-    );
-  }
-}
-
-
-/*
-class NewsList extends StatefulWidget {
-  const NewsList({Key? key}) : super(key: key);
-
-  @override
-  _NewsListState createState() => _NewsListState();
-}
-
-class _NewsListState extends State<NewsList> {
-  final FirebaseFirestore firestore = FirebaseFirestore.instance;
-  late Stream<QuerySnapshot> newsStream;
-
-  @override
-  void initState() {
-    super.initState();
-    newsStream = firestore.collection('News').snapshots();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return StreamBuilder<QuerySnapshot>(
-      stream: newsStream,
-      builder: (BuildContext context, AsyncSnapshot<QuerySnapshot> snapshot) {
-        if (snapshot.hasError) {
-          return Text('Error: ${snapshot.error}');
-        }
-        switch (snapshot.connectionState) {
-          case ConnectionState.waiting:
-            return const Text('Loading...');
-          default:
-            final List<QueryDocumentSnapshot> documents = snapshot.data!.docs;
-            return ListView.builder(
-              itemCount: documents.length,
-              itemBuilder: (BuildContext context, int index) {
-                final Map<String, dynamic> data = documents[index]
-                    .data()! as Map<String, dynamic>;
-                final DateTime createdDate = data['createdDate'].toDate();
-                final formattedDate = DateFormat('dd.MM.yyyy').format(
-                    createdDate);
-                return Dismissible(
-                  key: UniqueKey(),
-                  onDismissed: (direction) {
-                    setState(() {
-                      documents.removeAt(index);
-                    });
-                  },
-                  child: UserDefinedItem(
-                    title: data['title'] ?? '',
-                    datum: formattedDate,
-                    description: data['description'] ?? '',
-                    image: Image.network((data['imageUrl'])),
-                  ),
-                );
-              },
-            );
-        }
-      },
-    );
-  }
-}
-*/
-
-
-  /*
-  @override
-  Widget build(BuildContext context) {
-    return StreamBuilder<QuerySnapshot>(
-      stream: newsStream,
-      builder: (BuildContext context, AsyncSnapshot<QuerySnapshot> snapshot) {
-        if (snapshot.hasError) {
-          return Text('Error: ${snapshot.error}');
-        }
-        switch (snapshot.connectionState) {
-          case ConnectionState.waiting:
-            return const Text('Loading...');
-          default:
-            final List<QueryDocumentSnapshot> documents = snapshot.data!.docs;
-            return ListView.builder(
-              itemCount: documents.length,
-              itemBuilder: (BuildContext context, int index) {
-                final Map<String, dynamic> data = documents[index].data()! as Map<String, dynamic>;
-                final DateTime createdDate = data['createdDate'].toDate();
-                final formattedDate = DateFormat('dd.MM.yyyy').format(createdDate);
+                final Map<String, dynamic> data =
+                documents[index].data()! as Map<String, dynamic>;
+                final DateTime createdDate =
+                data['createdDate'].toDate();
+                final formattedDate =
+                DateFormat('dd.MM.yyyy').format(createdDate);
                 return UserDefinedItem(
                   title: data['title'] ?? '',
                   datum: formattedDate,
                   description: data['description'] ?? '',
-                  image: Image.network((data['imageUrl'])),
+                  imageUrl: data['imageUrl'] ?? '',
                 );
               },
             );
@@ -259,15 +175,12 @@ class _NewsListState extends State<NewsList> {
     );
   }
 }
-*/
-
 class IssueList extends StatefulWidget {
   const IssueList({Key? key}) : super(key: key);
 
   @override
   _IssueListState createState() => _IssueListState();
 }
-
 class _IssueListState extends State<IssueList> {
   final FirebaseFirestore firestore = FirebaseFirestore.instance;
   late Stream<QuerySnapshot> issueStream;
@@ -275,7 +188,18 @@ class _IssueListState extends State<IssueList> {
   @override
   void initState() {
     super.initState();
-    issueStream = firestore.collection('Issues').snapshots();
+
+    // Enable persistence
+    firestore.enablePersistence();
+
+    // Enable network
+    firestore.settings = Settings(cacheSizeBytes: Settings.CACHE_SIZE_UNLIMITED);
+
+    // Configure the stream to use the cache first and then the server
+    issueStream = firestore
+        .collection('Issues')
+        .orderBy('createdDate', descending: true)
+        .snapshots(includeMetadataChanges: true);
   }
 
   @override
@@ -294,14 +218,17 @@ class _IssueListState extends State<IssueList> {
             return ListView.builder(
               itemCount: documents.length,
               itemBuilder: (BuildContext context, int index) {
-                final Map<String, dynamic> data = documents[index].data()! as Map<String, dynamic>;
-                final DateTime createdDate = data['createdDate'].toDate();
-                final formattedDate = DateFormat('dd.MM.yyyy').format(createdDate);
+                final Map<String, dynamic> data =
+                documents[index].data()! as Map<String, dynamic>;
+                final DateTime createdDate =
+                data['createdDate'].toDate();
+                final formattedDate =
+                DateFormat('dd.MM.yyyy').format(createdDate);
                 return UserDefinedItem(
                   title: data['title'] ?? '',
                   datum: formattedDate,
                   description: data['description'] ?? '',
-                  image: Image.network((data['imageUrl'])),
+                  imageUrl: data['imageUrl'] ?? '',
                 );
               },
             );
@@ -314,24 +241,35 @@ class CitizensForum extends StatefulWidget {
   const CitizensForum({Key? key}) : super(key: key);
 
   @override
-  _CitizensForum createState() => _CitizensForum();
+  _CitizensForumState createState() => _CitizensForumState();
 }
 
-class _CitizensForum extends State<IssueList> {
+class _CitizensForumState extends State<CitizensForum> {
   final FirebaseFirestore firestore = FirebaseFirestore.instance;
-  late Stream<QuerySnapshot> citizenStream;
+  late Stream<QuerySnapshot<Map<String, dynamic>>> citizenStream;
 
   @override
   void initState() {
     super.initState();
-    citizenStream = firestore.collection('CitizensForum').snapshots();
+
+    // Enable persistence
+    firestore.enablePersistence();
+
+    // Enable network
+    firestore.settings = Settings(cacheSizeBytes: Settings.CACHE_SIZE_UNLIMITED);
+
+    // Configure the stream to use the cache first and then the server
+    citizenStream = firestore
+        .collection('CitizensForum')
+        .orderBy('createdDate', descending: true)
+        .snapshots(includeMetadataChanges: true);
   }
 
   @override
   Widget build(BuildContext context) {
-    return StreamBuilder<QuerySnapshot>(
+    return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
       stream: citizenStream,
-      builder: (BuildContext context, AsyncSnapshot<QuerySnapshot> snapshot) {
+      builder: (BuildContext context, AsyncSnapshot<QuerySnapshot<Map<String, dynamic>>> snapshot) {
         if (snapshot.hasError) {
           return Text('Error: ${snapshot.error}');
         }
@@ -339,18 +277,18 @@ class _CitizensForum extends State<IssueList> {
           case ConnectionState.waiting:
             return const Text('Loading...');
           default:
-            final List<QueryDocumentSnapshot> documents = snapshot.data!.docs;
+            final List<QueryDocumentSnapshot<Map<String, dynamic>>> documents = snapshot.data!.docs;
             return ListView.builder(
               itemCount: documents.length,
               itemBuilder: (BuildContext context, int index) {
-                final Map<String, dynamic> data = documents[index].data()! as Map<String, dynamic>;
+                final Map<String, dynamic> data = documents[index].data();
                 final DateTime createdDate = data['createdDate'].toDate();
                 final formattedDate = DateFormat('dd.MM.yyyy').format(createdDate);
                 return UserDefinedItem(
                   title: data['title'] ?? '',
                   datum: formattedDate,
                   description: data['description'] ?? '',
-                  image: Image.network((data['imageUrl'])),
+                  imageUrl: data['imageUrl'] ?? '',
                 );
               },
             );
