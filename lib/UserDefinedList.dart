@@ -1,6 +1,7 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'DetailPage.dart';
 import 'package:intl/intl.dart';
@@ -52,7 +53,7 @@ class UserDefinedItem extends StatelessWidget {
                     child: CircularProgressIndicator(),
                   ),
                 ),
-                errorWidget: (context, url, error) => Icon(Icons.error),
+                errorWidget: (context, url, error) => const Icon(Icons.error),
               ),
             ),
             Flexible(
@@ -103,20 +104,16 @@ class UserDefinedItem extends StatelessWidget {
   }
 }
 
-// ...
-
-// Ändern Sie die Verwendung von Image.network in UserDefinedItem-Widgets in Ihren ListView.builder-Aufrufen:
-
-class NewsList extends StatefulWidget {
-  const NewsList({Key? key}) : super(key: key);
+class GenericList extends StatefulWidget {
+  final String collectionName;
+  const GenericList({Key? key, required this.collectionName}) : super(key: key);
 
   @override
-  _NewsListState createState() => _NewsListState();
+  _GenericListState createState() => _GenericListState();
 }
 
-class _NewsListState extends State<NewsList> {
+class _GenericListState extends State<GenericList> {
   final FirebaseFirestore firestore = FirebaseFirestore.instance;
-  late Stream<QuerySnapshot> newsStream;
 
   @override
   void initState() {
@@ -127,32 +124,35 @@ class _NewsListState extends State<NewsList> {
 
     // Enable network
     firestore.settings =
-        Settings(cacheSizeBytes: Settings.CACHE_SIZE_UNLIMITED);
+        const Settings(cacheSizeBytes: Settings.CACHE_SIZE_UNLIMITED);
+  }
 
-    // Configure the stream to use the cache first and then the server
-    newsStream = firestore
-        .collection('News')
+  Stream<QuerySnapshot> getDocumentStream() {
+    return firestore
+        .collection(widget.collectionName)
         .orderBy('createdDate', descending: true)
         .snapshots(includeMetadataChanges: true);
   }
 
-  Future<void> _deleteNews(String newsId, String? imageUrl) async {
+  Future<void> _deleteDocument(String documentId, String? imageUrl) async {
     try {
       if (imageUrl != null) {
         // Löschen Sie das Bild vom Firebase Storage
         await FirebaseStorage.instance.refFromURL(imageUrl).delete();
       }
       // Löschen Sie das Dokument von der Firestore-Kollektion
-      await firestore.collection('News').doc(newsId).delete();
+      await firestore.collection(widget.collectionName).doc(documentId).delete();
     } catch (e) {
-      print('Error deleting news: $e');
+      if (kDebugMode) {
+        print('Error deleting document: $e');
+      }
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return StreamBuilder<QuerySnapshot>(
-      stream: newsStream,
+      stream: getDocumentStream(),
       builder: (BuildContext context, AsyncSnapshot<QuerySnapshot> snapshot) {
         if (snapshot.hasError) {
           return Text('Error: ${snapshot.error}');
@@ -166,207 +166,27 @@ class _NewsListState extends State<NewsList> {
               itemCount: documents.length,
               itemBuilder: (BuildContext context, int index) {
                 final Map<String, dynamic> data =
-                    documents[index].data()! as Map<String, dynamic>;
-                final String newsId = documents[index].id;
-                final DateTime createdDate = data['createdDate'].toDate();
-                final formattedDate =
-                    DateFormat('dd.MM.yyyy').format(createdDate);
-                return Dismissible(
-                  key: UniqueKey(),
-                  direction: DismissDirection.endToStart,
-                  onDismissed: (direction) {
-                    _deleteNews(newsId, data['imageUrl']);
-                  },
-                  background: Container(
-                    color: Colors.red,
-                    child: const Align(
-                      alignment: Alignment.centerRight,
-                      child: Padding(
-                        padding: EdgeInsets.only(right: 16),
-                        child: Icon(Icons.delete, color: Colors.white),
-                      ),
-                    ),
-                  ),
-                  child: UserDefinedItem(
-                    title: data['title'] ?? '',
-                    datum: formattedDate,
-                    description: data['description'] ?? '',
-                    imageUrl: data['imageUrl'] ?? '',
-                  ),
-                );
-              },
-            );
-        }
-      },
-    );
-  }
-}
-
-class IssueList extends StatefulWidget {
-  const IssueList({Key? key}) : super(key: key);
-
-  @override
-  _IssueListState createState() => _IssueListState();
-}
-
-class _IssueListState extends State<IssueList> {
-  final FirebaseFirestore firestore = FirebaseFirestore.instance;
-  late Stream<QuerySnapshot> issueStream;
-
-  @override
-  void initState() {
-    super.initState();
-
-    // Enable persistence
-    firestore.enablePersistence();
-
-    // Enable network
-    firestore.settings =
-        Settings(cacheSizeBytes: Settings.CACHE_SIZE_UNLIMITED);
-
-    // Configure the stream to use the cache first and then the server
-    issueStream = firestore
-        .collection('Issues')
-        .orderBy('createdDate', descending: true)
-        .snapshots(includeMetadataChanges: true);
-  }
-
-  Future<void> _deleteIssue(String issueId, String imageUrl) async {
-    try {
-      final Reference ref = FirebaseStorage.instance.refFromURL(imageUrl);
-      await ref.delete();
-      await firestore.collection('Issues').doc(issueId).delete();
-    } catch (e) {
-      print('Error deleting issue: $e');
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return StreamBuilder<QuerySnapshot>(
-      stream: issueStream,
-      builder: (BuildContext context, AsyncSnapshot<QuerySnapshot> snapshot) {
-        if (snapshot.hasError) {
-          return Text('Error: ${snapshot.error}');
-        }
-        switch (snapshot.connectionState) {
-          case ConnectionState.waiting:
-            return const Text('Loading...');
-          default:
-            final List<QueryDocumentSnapshot> documents = snapshot.data!.docs;
-            return ListView.builder(
-              itemCount: documents.length,
-              itemBuilder: (BuildContext context, int index) {
-                final Map<String, dynamic> data =
-                    documents[index].data()! as Map<String, dynamic>;
-                final String issueId = documents[index].id;
-                final DateTime createdDate = data['createdDate'].toDate();
-                final formattedDate =
-                    DateFormat('dd.MM.yyyy').format(createdDate);
-                return Dismissible(
-                  key: UniqueKey(),
-                  direction: DismissDirection.endToStart,
-                  onDismissed: (direction) {
-                    _deleteIssue(issueId, data['imageUrl']);
-                  },
-                  background: Container(
-                    color: Colors.red,
-                    child: const Align(
-                      alignment: Alignment.centerRight,
-                      child: Padding(
-                        padding: EdgeInsets.only(right: 16),
-                        child: Icon(Icons.delete, color: Colors.white),
-                      ),
-                    ),
-                  ),
-                  child: UserDefinedItem(
-                    title: data['title'] ?? '',
-                    datum: formattedDate,
-                    description: data['description'] ?? '',
-                    imageUrl: data['imageUrl'] ?? '',
-                  ),
-                );
-              },
-            );
-        }
-      },
-    );
-  }
-}
-
-class CitizensForum extends StatefulWidget {
-  const CitizensForum({Key? key}) : super(key: key);
-
-  @override
-  _CitizensForumState createState() => _CitizensForumState();
-}
-
-class _CitizensForumState extends State<CitizensForum> {
-  final FirebaseFirestore firestore = FirebaseFirestore.instance;
-  late Stream<QuerySnapshot<Map<String, dynamic>>> citizenStream;
-
-  @override
-  void initState() {
-    super.initState();
-
-    // Enable persistence
-    firestore.enablePersistence();
-
-    // Enable network
-    firestore.settings =
-        Settings(cacheSizeBytes: Settings.CACHE_SIZE_UNLIMITED);
-
-    // Configure the stream to use the cache first and then the server
-    citizenStream = firestore
-        .collection('CitizensForum')
-        .orderBy('createdDate', descending: true)
-        .snapshots(includeMetadataChanges: true);
-  }
-
-  Future<void> deleteDocument(String documentId, String? imageUrl) async {
-    // Delete document
-    await firestore.collection('CitizensForum').doc(documentId).delete();
-
-    // Delete image file
-    if (imageUrl != null) {
-      await FirebaseStorage.instance.refFromURL(imageUrl).delete();
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
-      stream: citizenStream,
-      builder: (BuildContext context,
-          AsyncSnapshot<QuerySnapshot<Map<String, dynamic>>> snapshot) {
-        if (snapshot.hasError) {
-          return Text('Error: ${snapshot.error}');
-        }
-        switch (snapshot.connectionState) {
-          case ConnectionState.waiting:
-            return const Text('Loading...');
-          default:
-            final List<QueryDocumentSnapshot<Map<String, dynamic>>> documents =
-                snapshot.data!.docs;
-            return ListView.builder(
-              itemCount: documents.length,
-              itemBuilder: (BuildContext context, int index) {
-                final Map<String, dynamic> data = documents[index].data();
+                documents[index].data()! as Map<String, dynamic>;
                 final String documentId = documents[index].id;
                 final DateTime createdDate = data['createdDate'].toDate();
                 final formattedDate =
-                    DateFormat('dd.MM.yyyy').format(createdDate);
+                DateFormat('dd.MM.yyyy').format(createdDate);
                 return Dismissible(
-                  key: Key(documentId),
+                  key: UniqueKey(),
                   direction: DismissDirection.endToStart,
+                  onDismissed: (direction) {
+                    _deleteDocument(documentId, data['imageUrl']);
+                  },
                   background: Container(
-                    alignment: Alignment.centerRight,
-                    padding: const EdgeInsets.only(right: 16.0),
                     color: Colors.red,
-                    child: const Icon(Icons.delete, color: Colors.white),
+                    child: const Align(
+                      alignment: Alignment.centerRight,
+                      child: Padding(
+                        padding: EdgeInsets.only(right: 16),
+                        child: Icon(Icons.delete, color: Colors.white),
+                      ),
+                    ),
                   ),
-                  onDismissed: (_) =>
-                      deleteDocument(documentId, data['imageUrl']),
                   child: UserDefinedItem(
                     title: data['title'] ?? '',
                     datum: formattedDate,

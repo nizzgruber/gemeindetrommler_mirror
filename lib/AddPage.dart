@@ -1,5 +1,4 @@
 import 'dart:io';
-
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
@@ -228,7 +227,7 @@ class _AddScreenState extends State<AddScreen> {
                                   ),
                                 ),
                                 Center(
-                                  child: Container(
+                                  child: SizedBox(
                                     height: 80,
                                     child: ListTile(
                                       leading: const Icon(
@@ -245,7 +244,7 @@ class _AddScreenState extends State<AddScreen> {
                                   ),
                                 ),
                                 Center(
-                                  child: Container(
+                                  child: SizedBox(
                                     height: 80,
                                     child: ListTile(
                                       leading: const Icon(

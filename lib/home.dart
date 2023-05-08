@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'UserDefinedList.dart';
 
 class MyHomePage extends StatefulWidget {
-  const MyHomePage({Key? key, required this.title});
+  const MyHomePage({super.key, required this.title});
 
   final String title;
 
@@ -33,9 +33,9 @@ class _MyHomePageState extends State<MyHomePage> {
   @override
   Widget build(BuildContext context) {
     final List<Widget> widgetOptions = <Widget>[
-      const CitizensForum(),
-      const NewsList(),
-      const IssueList(),
+      const GenericList(collectionName: 'CitizensForum'),
+      const GenericList(collectionName: 'News'),
+      const GenericList(collectionName: 'Issues'),
       Column(mainAxisAlignment: MainAxisAlignment.center, children: <Widget>[
         ElevatedButton(
           child: Text(login ? 'Logout' : 'Login'),
@@ -68,7 +68,7 @@ class _MyHomePageState extends State<MyHomePage> {
           );
         },
         tooltip: "Add",
-        child: Icon(Icons.add),
+        child: const Icon(Icons.add),
       ),
       bottomNavigationBar: BottomNavigationBar(
         items: const <BottomNavigationBarItem>[
