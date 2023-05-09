@@ -31,10 +31,10 @@
               "client_type": 3
             },
             {
-              "client_id": "576683162451-vf1g0qoge66lb3bmpsg4neckv4opovub.apps.googleusercontent.com",
+              "client_id": "576683162451-fsmb243l472p04mgcmg2lcg7cjreftu4.apps.googleusercontent.com",
               "client_type": 2,
               "ios_info": {
-                "bundle_id": "com.oggauergemeindetrommler.app"
+                "bundle_id": "oggauergemeindetrommler"
               }
             }
           ]

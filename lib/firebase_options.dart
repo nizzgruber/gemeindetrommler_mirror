@@ -59,11 +59,11 @@ class DefaultFirebaseOptions {
 
   static const FirebaseOptions ios = FirebaseOptions(
     apiKey: 'AIzaSyDV441PhkPEC7igZmYMpJ_axLMc2bKQ5fY',
-    appId: '1:576683162451:ios:f3e9140edfc4c945083fa6',
+    appId: '1:576683162451:ios:bfd658742514a7d2083fa6',
     messagingSenderId: '576683162451',
     projectId: 'gemeinde-trommler',
     storageBucket: 'gemeinde-trommler.appspot.com',
-    iosClientId: '576683162451-vf1g0qoge66lb3bmpsg4neckv4opovub.apps.googleusercontent.com',
-    iosBundleId: 'com.example.demoapp',
+    iosClientId: '576683162451-fsmb243l472p04mgcmg2lcg7cjreftu4.apps.googleusercontent.com',
+    iosBundleId: 'oggauergemeindetrommler',
   );
 }
