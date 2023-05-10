@@ -118,10 +118,8 @@ class _GenericListState extends State<GenericList> {
   @override
   void initState() {
     super.initState();
-
     // Enable persistence
     firestore.enablePersistence();
-
     // Enable network
     firestore.settings =
         const Settings(cacheSizeBytes: Settings.CACHE_SIZE_UNLIMITED);
