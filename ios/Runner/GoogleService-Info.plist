@@ -13,11 +13,11 @@
 	<key>PLIST_VERSION</key>
 	<string>1</string>
 	<key>BUNDLE_ID</key>
-	<string>gemeinde-trommler.appspot.com</string>
+	<string>oggauergemeindetrommler</string>
 	<key>PROJECT_ID</key>
 	<string>gemeinde-trommler</string>
 	<key>STORAGE_BUCKET</key>
-	<string>gemeinde-trommler</string>
+	<string>gemeinde-trommler.appspot.com</string>
 	<key>IS_ADS_ENABLED</key>
 	<false></false>
 	<key>IS_ANALYTICS_ENABLED</key>
@@ -29,6 +29,6 @@
 	<key>IS_SIGNIN_ENABLED</key>
 	<true></true>
 	<key>GOOGLE_APP_ID</key>
-	<string>1:576683162451:ios:bfd658742514a7d2083fa6</string>
+	<string>1:576683162451:ios:9033f27a309e6250083fa6</string>
 </dict>
 </plist>

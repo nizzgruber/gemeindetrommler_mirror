@@ -24,7 +24,10 @@ class DefaultFirebaseOptions {
     }
     switch (defaultTargetPlatform) {
       case TargetPlatform.android:
-        return android;
+        throw UnsupportedError(
+          'DefaultFirebaseOptions have not been configured for android - '
+          'you can reconfigure this by running the FlutterFire CLI again.',
+        );
       case TargetPlatform.iOS:
         return ios;
       case TargetPlatform.macOS:
@@ -49,21 +52,13 @@ class DefaultFirebaseOptions {
     }
   }
 
-  static const FirebaseOptions android = FirebaseOptions(
-    apiKey: 'AIzaSyAWjSjX1f2rGUGHLbXQS873DYY_oXqcHhs',
-    appId: '1:576683162451:android:48edba9829ee7925083fa6',
-    messagingSenderId: '576683162451',
-    projectId: 'gemeinde-trommler',
-    storageBucket: 'gemeinde-trommler.appspot.com',
-  );
-
   static const FirebaseOptions ios = FirebaseOptions(
     apiKey: 'AIzaSyDV441PhkPEC7igZmYMpJ_axLMc2bKQ5fY',
-    appId: '1:576683162451:ios:bfd658742514a7d2083fa6',
+    appId: '1:576683162451:ios:956de34e2dbeec89083fa6',
     messagingSenderId: '576683162451',
     projectId: 'gemeinde-trommler',
     storageBucket: 'gemeinde-trommler.appspot.com',
-    iosClientId: '576683162451-fsmb243l472p04mgcmg2lcg7cjreftu4.apps.googleusercontent.com',
-    iosBundleId: 'oggauergemeindetrommler',
+    iosClientId: '576683162451-c1b1lafcof6oi2l25lb9qh0q1dqh1dhr.apps.googleusercontent.com',
+    iosBundleId: 'com.oggauergemeindetrommler.app',
   );
 }
