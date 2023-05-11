@@ -24,10 +24,7 @@ class DefaultFirebaseOptions {
     }
     switch (defaultTargetPlatform) {
       case TargetPlatform.android:
-        throw UnsupportedError(
-          'DefaultFirebaseOptions have not been configured for android - '
-          'you can reconfigure this by running the FlutterFire CLI again.',
-        );
+        return android;
       case TargetPlatform.iOS:
         return ios;
       case TargetPlatform.macOS:
@@ -51,6 +48,14 @@ class DefaultFirebaseOptions {
         );
     }
   }
+
+  static const FirebaseOptions android = FirebaseOptions(
+    apiKey: 'AIzaSyAWjSjX1f2rGUGHLbXQS873DYY_oXqcHhs',
+    appId: '1:576683162451:android:48edba9829ee7925083fa6',
+    messagingSenderId: '576683162451',
+    projectId: 'gemeinde-trommler',
+    storageBucket: 'gemeinde-trommler.appspot.com',
+  );
 
   static const FirebaseOptions ios = FirebaseOptions(
     apiKey: 'AIzaSyDV441PhkPEC7igZmYMpJ_axLMc2bKQ5fY',
