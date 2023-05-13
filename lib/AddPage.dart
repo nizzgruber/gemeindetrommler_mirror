@@ -65,10 +65,28 @@ class _AddScreenState extends State<AddScreen> {
       final tempFile = File(pickedFile.path);
       final bool isValid = await isFileSizeValid(tempFile, 10);
       if (isValid) {
-        File croppedFile = await _cropImage(tempFile);  // Bild zuschneiden
-        setState(() {
-          _imageFile = croppedFile;
-        });
+        // Bildinformationen lesen
+        final originalImage = img.decodeImage(await tempFile.readAsBytes());
+
+        if (originalImage != null) {
+          if (originalImage.width == originalImage.height) {
+            // Wenn das Bild bereits im 1:1-Format ist, überspringen Sie das Zuschneiden
+            setState(() {
+              _imageFile = tempFile;
+              print("1:1");
+            });
+
+          } else {
+            // Wenn das Bild nicht im 1:1-Format ist, schneiden Sie es zu
+            File croppedFile = await _cropImage(tempFile);
+            setState(() {
+              _imageFile = croppedFile;
+            });
+            print("decode");
+          }
+        } else {
+          throw Exception('Unable to decode image file.');
+        }
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Die Dateigröße darf maximal 10 MB betragen.')),
@@ -76,6 +94,7 @@ class _AddScreenState extends State<AddScreen> {
       }
     }
   }
+
 
 
   Future<void> addNewElementToFirestore(String title, String description, File imageFile, {required Function(bool) onComplete}) async {

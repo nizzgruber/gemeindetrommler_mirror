@@ -50,6 +50,7 @@ dependencies:
   pdf: ^3.10.1
   printing: ^5.10.4
   image_cropper: ^3.0.3
+  logging: ^1.1.1
 
 
 dev_dependencies:
