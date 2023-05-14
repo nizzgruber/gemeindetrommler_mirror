@@ -132,7 +132,9 @@ class UserDefinedItem extends StatelessWidget {
 
 class GenericList extends StatefulWidget {
   final String collectionName;
-  const GenericList({Key? key, required this.collectionName}) : super(key: key);
+  final int selectedIndex;
+
+  const GenericList({required this.collectionName, required this.selectedIndex});
 
   @override
   _GenericListState createState() => _GenericListState();
@@ -140,7 +142,7 @@ class GenericList extends StatefulWidget {
 
 class _GenericListState extends State<GenericList> {
   final FirebaseFirestore firestore = FirebaseFirestore.instance;
-  Map<String, bool> selectedItems = {};
+  Map<String, Map<String, dynamic>> selectedItems = {};
 
   @override
   void initState() {
@@ -224,16 +226,14 @@ class _GenericListState extends State<GenericList> {
                           datum: formattedDate,
                           description: data['description'] ?? '',
                           imageUrl: data['imageUrl'] ?? '',
-                          isSelected: selectedItems.containsKey(documentId)
-                              ? selectedItems[documentId]!
-                              : false,
+                          isSelected: selectedItems.containsKey(documentId),
                           onLongPress: () {
-                            // Aktualisieren Sie den ausgewählten Zustand des Elements
                             setState(() {
-                              selectedItems[documentId] =
-                              !selectedItems.containsKey(documentId)
-                                  ? true
-                                  : !selectedItems[documentId]!;
+                              if (selectedItems.containsKey(documentId)) {
+                                selectedItems.remove(documentId);
+                              } else {
+                                selectedItems[documentId] = data;
+                              }
                             });
                           },
                         ),
@@ -243,25 +243,42 @@ class _GenericListState extends State<GenericList> {
               }
             },
           ),
-          if (selectedItems.containsValue(true))
-            Align(
-              alignment: Alignment.bottomLeft,
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: FloatingActionButton(
-                  onPressed: () {
-                    // Führen Sie hier die gewünschte Aktion aus
-                  },
-                  backgroundColor: Colors.red,
-                  child: const Icon(Icons.picture_as_pdf),
+          if (selectedItems.isNotEmpty)
+            Stack(
+              children: [
+                Align(
+                  alignment: Alignment.topRight,
+                  child: Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: FloatingActionButton(
+                      backgroundColor: Colors.blue,
+                      onPressed: () {
+                        setState(() {
+                          selectedItems.clear();
+                        });
+                      },
+                      child: const Icon(Icons.refresh),
+                    ),
+                  ),
                 ),
-              ),
+                Align(
+                  alignment: Alignment.bottomLeft,
+                  child: Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: FloatingActionButton(
+                      backgroundColor: Colors.red,
+                      onPressed: () => _printSelectedItemsAsPdf(widget.selectedIndex),
+                      child: const Icon(Icons.picture_as_pdf),
+                    ),
+                  ),
+                ),
+              ],
             ),
         ],
       ),
     );
   }
-  /*
+
   Future<pdfWidgets.ImageProvider> _loadNetworkImage(String url) async {
     final response = await http.get(Uri.parse(url));
 
@@ -274,43 +291,98 @@ class _GenericListState extends State<GenericList> {
 
     return imageProvider;
   }
-  Future<void> _printPdf() async {
-    final pdf = pdfWidgets.Document();
 
-    for (var docId in selectedItems.keys) {
-      final title = selectedItems[docId]!['title'];
-      final datum = selectedItems[docId]!['datum'];
-      final description = selectedItems[docId]!['description'];
-      final imageUrl = selectedItems[docId]!['imageUrl'];
+  Future<void> _printSelectedItemsAsPdf(int selectedIndex) async {
+    final pdfWidgets.Document pdf = pdfWidgets.Document();
 
-      final image = await _loadNetworkImage(imageUrl);
+    final List<pdfWidgets.Widget> items = [];
+    for (final entry in selectedItems.entries) {
+      final String title = entry.value['title'] ?? '';
+      final String description = (entry.value['description'] ?? '').length > 200 ? (entry.value['description'] ?? '').substring(0, 200) + '...' : (entry.value['description'] ?? '');
+      final String imageUrl = entry.value['imageUrl'] ?? '';
+      final DateTime date = entry.value['createdDate'].toDate();
+      final String formattedDate = DateFormat('dd.MM.yyyy').format(date);
+      final pdfWidgets.ImageProvider imageProvider = await _loadNetworkImage(imageUrl);
 
-      pdf.addPage(
-        pdfWidgets.MultiPage(
-          build: (context) => [
-            pdfWidgets.Center(
-              child: pdfWidgets.SizedBox(
-                width: double.infinity,
-                child: pdfWidgets.AspectRatio(
-                  aspectRatio: 1,
-                  child: pdfWidgets.Image(image),
+      items.add(
+        pdfWidgets.Container(
+          height: 150, // Begrenzt die Höhe des Containers
+          padding: const pdfWidgets.EdgeInsets.all(5.0), // Reduziert den Abstand
+          child: pdfWidgets.Row(
+            children: [
+              pdfWidgets.Container(
+                width: 150, // Reduziert die Breite des Bildes
+                height: 150, // Reduziert die Höhe des Bildes
+                child: pdfWidgets.Image(imageProvider),
+              ),
+              pdfWidgets.Flexible(
+                child: pdfWidgets.Padding(
+                  padding: const pdfWidgets.EdgeInsets.all(5.0), // Reduziert den Abstand
+                  child: pdfWidgets.Column(
+                    crossAxisAlignment: pdfWidgets.CrossAxisAlignment.start,
+                    children: [
+                      pdfWidgets.Row(
+                        mainAxisAlignment: pdfWidgets.MainAxisAlignment.spaceBetween,
+                        children: [
+                          pdfWidgets.Flexible(
+                            child: pdfWidgets.Text(
+                              title,
+                              style: pdfWidgets.TextStyle(
+                                  fontSize: 20, fontWeight: pdfWidgets.FontWeight.bold),
+                            ),
+                          ),
+                          pdfWidgets.Text(
+                            formattedDate,
+                            style: const pdfWidgets.TextStyle(
+                              fontSize: 15,
+                            ),
+                          ),
+
+                        ],
+                      ),
+                      pdfWidgets.Padding(
+                        padding: const pdfWidgets.EdgeInsets.all(5.0), // Reduziert den Abstand
+                        child: pdfWidgets.Text(
+                          description,
+                          style: const pdfWidgets.TextStyle(
+                            fontSize: 15,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
-            ),
-            pdfWidgets.Text(
-                title,
-                style: pdfWidgets.TextStyle(
-                    fontSize: 20,
-                    fontWeight: pdfWidgets.FontWeight.bold
-                )
-            ),
-            pdfWidgets.Text(datum, style: const pdfWidgets.TextStyle(fontSize: 14, )),
-            pdfWidgets.Paragraph(text: description, style: const pdfWidgets.TextStyle(fontSize: 12)),
-          ],
+            ],
+          ),
         ),
       );
     }
 
-    await Printing.sharePdf(bytes: await pdf.save(), filename: 'selectedItems.pdf');
-  }*/
+    pdf.addPage(
+      pdfWidgets.MultiPage(
+        build: (pdfWidgets.Context context) => items,
+      ),
+    );
+
+    String filename;
+    switch(selectedIndex) {
+      case 0:
+        filename = 'Bürgerforum_items.pdf';
+        break;
+      case 1:
+        filename = 'Neuigkeiten_items.pdf';
+        break;
+      case 2:
+        filename = 'Mängel_items.pdf';
+        break;
+      default:
+        filename = 'selected_items.pdf';
+    }
+
+    await Printing.sharePdf(bytes: await pdf.save(), filename: filename);
+    setState(() {
+      selectedItems.clear();
+    });
+  }
 }

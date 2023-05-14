@@ -34,9 +34,9 @@ class _MyHomePageState extends State<MyHomePage> {
   @override
   Widget build(BuildContext context) {
     final List<Widget> widgetOptions = <Widget>[
-      const GenericList(collectionName: 'CitizensForum'),
-      const GenericList(collectionName: 'News'),
-      const GenericList(collectionName: 'Issues'),
+      const GenericList(collectionName: 'CitizensForum', selectedIndex: 0),
+      const GenericList(collectionName: 'News', selectedIndex: 1),
+      const GenericList(collectionName: 'Issues', selectedIndex: 2),
       Column(mainAxisAlignment: MainAxisAlignment.center, children: <Widget>[
         ElevatedButton(
           child: Text(login ? 'Logout' : 'Login'),
