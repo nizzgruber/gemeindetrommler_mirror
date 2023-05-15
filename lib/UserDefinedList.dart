@@ -8,6 +8,7 @@ import 'DetailPage.dart';
 import 'package:intl/intl.dart';
 import 'package:pdf/widgets.dart' as pdfWidgets;
 import 'package:http/http.dart' as http;
+import 'package:image/image.dart' as img;
 
 class UserDefinedItem extends StatelessWidget {
   final String title;
@@ -153,6 +154,13 @@ class _GenericListState extends State<GenericList> {
     firestore.settings =
     const Settings(cacheSizeBytes: Settings.CACHE_SIZE_UNLIMITED);
   }
+  @override
+  void didUpdateWidget(GenericList oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.selectedIndex != oldWidget.selectedIndex) {
+      selectedItems.clear();
+    }
+  }
 
   Stream<QuerySnapshot> getDocumentStream() {
     return firestore
@@ -287,7 +295,11 @@ class _GenericListState extends State<GenericList> {
     }
 
     final Uint8List bytes = response.bodyBytes;
-    final imageProvider = pdfWidgets.MemoryImage(bytes);
+    final img.Image? image = img.decodeImage(bytes);
+    final img.Image resizedImage = img.copyResize(image!, width: 500); // Beispielwert für die Breite
+    final Uint8List resizedBytes = Uint8List.fromList(img.encodeJpg(resizedImage));
+
+    final imageProvider = pdfWidgets.MemoryImage(resizedBytes);
 
     return imageProvider;
   }
