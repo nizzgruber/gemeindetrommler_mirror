@@ -4,6 +4,7 @@ import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:printing/printing.dart';
+import 'AddPage.dart';
 import 'DetailPage.dart';
 import 'package:intl/intl.dart';
 import 'package:pdf/widgets.dart' as pdfWidgets;
@@ -17,6 +18,7 @@ class UserDefinedItem extends StatelessWidget {
   final String imageUrl;
   final Function onLongPress;
   final bool isSelected;
+  final VoidCallback onTap;
 
   const UserDefinedItem({
     Key? key,
@@ -26,26 +28,14 @@ class UserDefinedItem extends StatelessWidget {
     required this.imageUrl,
     required this.onLongPress,
     required this.isSelected,
+    required this.onTap,
   }) : super(key: key);
 
 
   @override
   Widget build(BuildContext context) {
     return InkWell(
-      onTap: () {
-        // Open a new screen when the user taps on the list item
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => DetailPage(
-              title: title,
-              datum: datum,
-              description: description,
-              imageUrl: imageUrl,
-            ),
-          ),
-        );
-      },
+      onTap:onTap,
       onLongPress: onLongPress as void Function()?,
       child: Card(
         child: Row(
@@ -161,6 +151,11 @@ class _GenericListState extends State<GenericList> {
       selectedItems.clear();
     }
   }
+  void clearSelectedItems() {
+    setState(() {
+      selectedItems.clear();
+    });
+  }
 
   Stream<QuerySnapshot> getDocumentStream() {
     return firestore
@@ -235,6 +230,21 @@ class _GenericListState extends State<GenericList> {
                           description: data['description'] ?? '',
                           imageUrl: data['imageUrl'] ?? '',
                           isSelected: selectedItems.containsKey(documentId),
+                          onTap: () {
+                            clearSelectedItems();
+                            // Open a new screen when the user taps on the list item
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => DetailPage(
+                                  title: data['title'],
+                                  datum: formattedDate,
+                                  description: data['description'],
+                                  imageUrl: data['imageUrl'],
+                                ),
+                              ),
+                            );
+                          },
                           onLongPress: () {
                             setState(() {
                               if (selectedItems.containsKey(documentId)) {
@@ -261,10 +271,9 @@ class _GenericListState extends State<GenericList> {
                     child: FloatingActionButton(
                       backgroundColor: Colors.blue,
                       onPressed: () {
-                        setState(() {
-                          selectedItems.clear();
-                        });
+                        clearSelectedItems();
                       },
+                      tooltip: "Auswahl zurücksetzen",
                       child: const Icon(Icons.refresh),
                     ),
                   ),
@@ -276,6 +285,7 @@ class _GenericListState extends State<GenericList> {
                     child: FloatingActionButton(
                       backgroundColor: Colors.red,
                       onPressed: () => _printSelectedItemsAsPdf(widget.selectedIndex),
+                      tooltip: "Ausgewählte Elemente als pdf speichern",
                       child: const Icon(Icons.picture_as_pdf),
                     ),
                   ),
@@ -283,6 +293,18 @@ class _GenericListState extends State<GenericList> {
               ],
             ),
         ],
+
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () {
+          clearSelectedItems();
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => AddScreen(initialIndex: widget.selectedIndex)),
+          );
+        },
+        tooltip: "Neues Element hinzufügen",
+        child: const Icon(Icons.add),
       ),
     );
   }
@@ -293,14 +315,13 @@ class _GenericListState extends State<GenericList> {
     if (response.statusCode != 200) {
       throw Exception('Failed to load network image.');
     }
-
     final Uint8List bytes = response.bodyBytes;
+
     final img.Image? image = img.decodeImage(bytes);
     final img.Image resizedImage = img.copyResize(image!, width: 500); // Beispielwert für die Breite
     final Uint8List resizedBytes = Uint8List.fromList(img.encodeJpg(resizedImage));
 
     final imageProvider = pdfWidgets.MemoryImage(resizedBytes);
-
     return imageProvider;
   }
 
@@ -310,7 +331,7 @@ class _GenericListState extends State<GenericList> {
     final List<pdfWidgets.Widget> items = [];
     for (final entry in selectedItems.entries) {
       final String title = entry.value['title'] ?? '';
-      final String description = (entry.value['description'] ?? '').length > 200 ? (entry.value['description'] ?? '').substring(0, 200) + '...' : (entry.value['description'] ?? '');
+      final String description = (entry.value['description'] ?? '').length > 165 ? (entry.value['description'] ?? '').substring(0, 165) + '...' : (entry.value['description'] ?? '');
       final String imageUrl = entry.value['imageUrl'] ?? '';
       final DateTime date = entry.value['createdDate'].toDate();
       final String formattedDate = DateFormat('dd.MM.yyyy').format(date);
@@ -318,13 +339,13 @@ class _GenericListState extends State<GenericList> {
 
       items.add(
         pdfWidgets.Container(
-          height: 150, // Begrenzt die Höhe des Containers
+          height: 145, // Begrenzt die Höhe des Containers
           padding: const pdfWidgets.EdgeInsets.all(5.0), // Reduziert den Abstand
           child: pdfWidgets.Row(
             children: [
               pdfWidgets.Container(
-                width: 150, // Reduziert die Breite des Bildes
-                height: 150, // Reduziert die Höhe des Bildes
+                width: 145, // Reduziert die Breite des Bildes
+                height: 145, // Reduziert die Höhe des Bildes
                 child: pdfWidgets.Image(imageProvider),
               ),
               pdfWidgets.Flexible(
@@ -393,8 +414,6 @@ class _GenericListState extends State<GenericList> {
     }
 
     await Printing.sharePdf(bytes: await pdf.save(), filename: filename);
-    setState(() {
-      selectedItems.clear();
-    });
+    clearSelectedItems();
   }
 }

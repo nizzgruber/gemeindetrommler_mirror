@@ -58,19 +58,6 @@ class _MyHomePageState extends State<MyHomePage> {
       body: Center(
         child: widgetOptions.elementAt(_selectedIndex),
       ),
-      floatingActionButton: _selectedIndex == 3 // Wenn der ausgewählte Index 3 ist, also auf dem Profil-Widget
-          ? null // Zeigt keinen Button an
-          : FloatingActionButton(
-        onPressed: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-                builder: (context) => AddScreen(initialIndex: _selectedIndex)),
-          );
-        },
-        tooltip: "Add",
-        child: const Icon(Icons.add),
-      ),
       bottomNavigationBar: BottomNavigationBar(
         items: const <BottomNavigationBarItem>[
           BottomNavigationBarItem(
