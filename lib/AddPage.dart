@@ -1,8 +1,10 @@
 import 'dart:io';
+import 'dart:math';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:image/image.dart' as img;
 
 
 class AddScreen extends StatefulWidget {
@@ -35,6 +37,27 @@ class _AddScreenState extends State<AddScreen> {
     return fileSize <= maxSizeInBytes;
   }
 
+  Future<File> _cropImage(File imageFile) async {
+    final originalImage = img.decodeImage(await imageFile.readAsBytes());
+
+    if (originalImage != null) {
+      int originSize = min(originalImage.width, originalImage.height);
+      final croppedImage = img.copyCrop(
+          originalImage,
+          x: (originalImage.width - originSize)~/2,
+          y: (originalImage.height - originSize)~/2,
+          width: originSize,
+          height: originSize
+      );
+      final newPath = imageFile.path.substring(0, imageFile.path.lastIndexOf('/'));
+      final newFile = File('$newPath/cropped.jpg');
+      await newFile.writeAsBytes(img.encodePng(croppedImage));
+      return newFile;
+    } else {
+      throw Exception('Unable to decode image file.');
+    }
+  }
+
   Future<void> _getImage(ImageSource source) async {
     final pickedFile = await ImagePicker().pickImage(source: source);
 
@@ -42,9 +65,28 @@ class _AddScreenState extends State<AddScreen> {
       final tempFile = File(pickedFile.path);
       final bool isValid = await isFileSizeValid(tempFile, 10);
       if (isValid) {
-        setState(() {
-          _imageFile = tempFile;
-        });
+        // Bildinformationen lesen
+        final originalImage = img.decodeImage(await tempFile.readAsBytes());
+
+        if (originalImage != null) {
+          if (originalImage.width == originalImage.height) {
+            // Wenn das Bild bereits im 1:1-Format ist, überspringen Sie das Zuschneiden
+            setState(() {
+              _imageFile = tempFile;
+              print("1:1");
+            });
+
+          } else {
+            // Wenn das Bild nicht im 1:1-Format ist, schneiden Sie es zu
+            File croppedFile = await _cropImage(tempFile);
+            setState(() {
+              _imageFile = croppedFile;
+            });
+            print("decode");
+          }
+        } else {
+          throw Exception('Unable to decode image file.');
+        }
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Die Dateigröße darf maximal 10 MB betragen.')),
@@ -52,6 +94,8 @@ class _AddScreenState extends State<AddScreen> {
       }
     }
   }
+
+
 
   Future<void> addNewElementToFirestore(String title, String description, File imageFile, {required Function(bool) onComplete}) async {
     String collectionName;

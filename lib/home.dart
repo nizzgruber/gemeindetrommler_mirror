@@ -34,21 +34,6 @@ class _MyHomePageState extends State<MyHomePage> {
       body: Center(
         child: widgetOptions.elementAt(_selectedIndex),
       ),
-      floatingActionButton: _selectedIndex == 3
-          ? null
-          : FloatingActionButton(
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) =>
-                        AddScreen(initialIndex: _selectedIndex),
-                  ),
-                );
-              },
-              tooltip: 'Add',
-              child: const Icon(Icons.add),
-            ),
       bottomNavigationBar: BottomNavigationBar(
         items: const <BottomNavigationBarItem>[
           BottomNavigationBarItem(
