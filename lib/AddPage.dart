@@ -129,12 +129,18 @@ class _AddScreenState extends State<AddScreen> {
 
   Future<String> uploadImageToFirebaseStorage(
       File imageFile, String collectionName) async {
-    Reference ref = FirebaseStorage.instance
-        .ref()
-        .child("$collectionName/${DateTime.now().toString()}");
-    UploadTask uploadTask = ref.putFile(imageFile);
-    return await (await uploadTask).ref.getDownloadURL();
+    String? userId = FirebaseAuth.instance.currentUser?.uid;
+    if (userId != null) {
+      Reference ref = FirebaseStorage.instance
+          .ref()
+          .child("$collectionName/$userId/${DateTime.now().toString()}");
+      UploadTask uploadTask = ref.putFile(imageFile);
+      return await (await uploadTask).ref.getDownloadURL();
+    } else {
+      throw Exception('Cannot upload without user ID');
+    }
   }
+
 
   @override
   Widget build(BuildContext context) {
@@ -246,18 +252,18 @@ class _AddScreenState extends State<AddScreen> {
               const SizedBox(height: 16.0),
               _imageFile != null
                   ? Expanded(
-                child: LayoutBuilder(
-                  builder: (context, constraints) {
-                    double imageHeight = max(0, constraints.maxHeight - keyboardHeight);
-                    return Container(
-                      height: imageHeight,
-                      child: Image.file(_imageFile!),
-                    );
-                  },
-                ),
-              )
-
-          : Container(
+                      child: LayoutBuilder(
+                        builder: (context, constraints) {
+                          double imageHeight =
+                              max(0, constraints.maxHeight - keyboardHeight);
+                          return Container(
+                            height: imageHeight,
+                            child: Image.file(_imageFile!),
+                          );
+                        },
+                      ),
+                    )
+                  : Container(
                       height: 200.0,
                       decoration: BoxDecoration(
                         color: Colors.grey[200],
