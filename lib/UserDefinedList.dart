@@ -214,7 +214,7 @@ class _GenericListState extends State<GenericList> {
                       DateFormat('dd.MM.yyyy').format(createdDate);
                       final currentUser = FirebaseAuth.instance.currentUser;
 
-                      if (currentUser != null && data['userId'] == currentUser.uid) {
+                      if (currentUser != null && data['author_uid'] == currentUser.uid) {
                         return Dismissible(
                           key: UniqueKey(),
                           direction: DismissDirection.endToStart,
@@ -368,7 +368,7 @@ class _GenericListState extends State<GenericList> {
     final Uint8List bytes = response.bodyBytes;
 
     final img.Image? image = img.decodeImage(bytes);
-    final img.Image resizedImage = img.copyResize(image!, width: 500); // Beispielwert für die Breite
+    final img.Image resizedImage = img.copyResize(image!, width: 290); // Beispielwert für die Breite
     final Uint8List resizedBytes = Uint8List.fromList(img.encodeJpg(resizedImage));
 
     final imageProvider = pdfWidgets.MemoryImage(resizedBytes);
