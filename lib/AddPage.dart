@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'dart:math';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
@@ -10,7 +11,7 @@ import 'package:image/image.dart' as img;
 class AddScreen extends StatefulWidget {
   final int initialIndex;
 
-  const AddScreen({super.key, required this.initialIndex});
+  const AddScreen({Key? key, required this.initialIndex}) : super(key: key);
   @override
   _AddScreenState createState() => _AddScreenState();
 
@@ -71,18 +72,22 @@ class _AddScreenState extends State<AddScreen> {
         if (originalImage != null) {
           if (originalImage.width == originalImage.height) {
             // Wenn das Bild bereits im 1:1-Format ist, überspringen Sie das Zuschneiden
-            setState(() {
-              _imageFile = tempFile;
-              print("1:1");
-            });
+            if(mounted) {
+              setState(() {
+                _imageFile = tempFile;
+                print("1:1");
+              });
+            }
 
           } else {
             // Wenn das Bild nicht im 1:1-Format ist, schneiden Sie es zu
             File croppedFile = await _cropImage(tempFile);
-            setState(() {
-              _imageFile = croppedFile;
-            });
-            print("decode");
+            if(mounted) {
+              setState(() {
+                _imageFile = croppedFile;
+              });
+              print("decode");
+            }
           }
         } else {
           throw Exception('Unable to decode image file.');
@@ -108,22 +113,22 @@ class _AddScreenState extends State<AddScreen> {
     }
 
     String imageUrl = await uploadImageToFirebaseStorage(imageFile, collectionName);
-    try
-    {
+    String? userId = FirebaseAuth.instance.currentUser?.uid;  // get the user ID
+
+    try {
       await FirebaseFirestore.instance.collection(collectionName).add({
         "title": title,
         "description": description,
         "imageUrl": imageUrl,
         "createdDate": DateTime.now(),
+        "userId": userId,  // add the user ID to the document
       });
       onComplete(true);
-    }
-    catch(e)
-    {
+    } catch(e) {
       onComplete(false);
     }
-
   }
+
 
   Future<String> uploadImageToFirebaseStorage(File imageFile, String collectionName) async {
     Reference ref = FirebaseStorage.instance.ref().child("$collectionName/${DateTime.now().toString()}");
@@ -172,14 +177,16 @@ class _AddScreenState extends State<AddScreen> {
                   });
                   Navigator.pop(context); // Fenster direkt schließen, nachdem der Upload-Button gedrückt wurde.
                   await addNewElementToFirestore(_titleController.text, _descriptionController.text, _imageFile!, onComplete: (bool success) {
-                    setState(() {
-                      _uploading = false;
-                    });
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text(success ? 'Upload erfolgreich.' : 'Upload fehlgeschlagen.'),
-                      ),
-                    );
+                    if(mounted) {
+                      setState(() {
+                        _uploading = false;
+                      });
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(success ? 'Upload erfolgreich.' : 'Upload fehlgeschlagen.'),
+                        ),
+                      );
+                    }
                   });
                 }
               },

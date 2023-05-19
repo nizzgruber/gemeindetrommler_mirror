@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:oggauergemeindetrommler/LoginPage.dart';
 import 'UserDefinedList.dart';
+import 'anonym_aut.dart';
 
 class MyHomePage extends StatefulWidget {
   const MyHomePage({Key? key, required this.title});
@@ -23,7 +24,7 @@ class _MyHomePageState extends State<MyHomePage> {
       const GenericList(collectionName: 'CitizensForum', selectedIndex: 0,),
       const GenericList(collectionName: 'News', selectedIndex: 1,),
       const GenericList(collectionName: 'Issues', selectedIndex: 2,),
-      LoginPage()
+      AnonymAuthScreen()
     ];
 
     return Scaffold(
