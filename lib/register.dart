@@ -1,27 +1,32 @@
 import 'package:flutter/material.dart';
-import 'package:oggauergemeindetrommler/register.dart';
 
-class LoginPage extends StatefulWidget {
-  LoginPage({Key? key}) : super(key: key);
+class RegisterPage extends StatefulWidget {
+  const RegisterPage({Key? key}) : super(key: key);
 
   @override
-  _LoginPageState createState() => _LoginPageState();
+  _RegisterPageState createState() => _RegisterPageState();
 }
 
-class _LoginPageState extends State<LoginPage> {
+class _RegisterPageState extends State<RegisterPage> {
   final _emailController = TextEditingController();
+  final _passwordController = TextEditingController();
+  final _confirmPasswordController = TextEditingController();
 
   @override
   void dispose() {
     _emailController.dispose();
+    _passwordController.dispose();
+    _confirmPasswordController.dispose();
     super.dispose();
   }
 
   bool isValidEmail(String email) {
-    // Hier kannst du deine Validierungslogik implementieren
-    // Rückgabe true, wenn die E-Mail gültig ist, andernfalls false
-    // Beispiel:
+    // Die gleiche Validierung wie in Ihrer LoginPage
     return RegExp(r'^[\w-]+(\.[\w-]+)*@[\w-]+(\.[\w-]+)+$').hasMatch(email);
+  }
+
+  bool arePasswordsMatching(String password, String confirmPassword) {
+    return password == confirmPassword;
   }
 
   @override
@@ -51,44 +56,37 @@ class _LoginPageState extends State<LoginPage> {
                 ),
                 const SizedBox(height: 16),
                 TextFormField(
+                  controller: _passwordController,
                   obscureText: true,
                   decoration: const InputDecoration(
                     labelText: 'Passwort',
                   ),
                 ),
+                const SizedBox(height: 16),
+                TextFormField(
+                  controller: _confirmPasswordController,
+                  obscureText: true,
+                  decoration: const InputDecoration(
+                    labelText: 'Passwort bestätigen',
+                  ),
+                ),
                 ElevatedButton(
                   onPressed: () {
                     String email = _emailController.text;
-                    if (isValidEmail(email)) {
-                      // E-Mail ist gültig, führe die entsprechende Aktion aus
+                    String password = _passwordController.text;
+                    String confirmPassword = _confirmPasswordController.text;
+                    if (isValidEmail(email) && arePasswordsMatching(password, confirmPassword)) {
+                      // E-Mail und Passwörter sind gültig, führe die entsprechende Aktion aus
                     } else {
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(
-                          content: Text('Ungültige E-Mail-Adresse'),
+                          content: Text('Ungültige Eingaben'),
                           duration: Duration(seconds: 2),
                         ),
                       );
                     }
                   },
-                  child: const Text('Anmelden'),
-                ),
-                const SizedBox(height: 16),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const Text('Noch kein Konto?'),
-                    TextButton(
-                      onPressed: () {
-                        // Navigiere zur Registrierungsseite
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                              builder: (context) => const RegisterPage()),
-                        );
-                      },
-                      child: const Text('Registrieren'),
-                    ),
-                  ],
+                  child: const Text('Registrieren'),
                 ),
               ],
             ),
