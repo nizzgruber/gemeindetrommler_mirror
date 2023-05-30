@@ -338,7 +338,7 @@ class _GenericListState extends State<GenericList> {
       ),
       floatingActionButton: Consumer<AuthState>(
         builder: (context, authState, child) {
-          if (authState.isSignedIn) {
+          if (authState.user != null) {
             return FloatingActionButton(
               onPressed: () {
                 clearSelectedItems();

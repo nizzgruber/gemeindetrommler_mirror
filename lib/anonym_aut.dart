@@ -4,15 +4,26 @@ import 'package:provider/provider.dart';
 
 class AuthState extends ChangeNotifier {
   FirebaseAuth auth = FirebaseAuth.instance;
-  bool _isSignedIn = false;
+  User? _user;
 
-  bool get isSignedIn => _isSignedIn;
+  User? get user => _user;
+
+  AuthState() {
+    auth.authStateChanges().listen((User? user) {
+      if (user == null) {
+        print('User is currently signed out!');
+        _user = null;
+      } else {
+        print('User is signed in!');
+        _user = user;
+      }
+      notifyListeners();
+    });
+  }
 
   Future<void> signInAnonymously() async {
     try {
       await auth.signInAnonymously();
-      _isSignedIn = true;
-      notifyListeners();
     } catch (e) {
       print(e);
     }
@@ -20,10 +31,9 @@ class AuthState extends ChangeNotifier {
 
   Future<void> signOut() async {
     await auth.signOut();
-    _isSignedIn = false;
-    notifyListeners();
   }
 }
+
 class AnonymAuthScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
@@ -32,10 +42,10 @@ class AnonymAuthScreen extends StatelessWidget {
         child: Consumer<AuthState>(
           builder: (context, authState, child) {
             return ElevatedButton(
-              onPressed: authState.isSignedIn
-                  ? authState.signOut
-                  : authState.signInAnonymously,
-              child: Text(authState.isSignedIn ? 'Abmelden' : 'Anonym anmelden'),
+              onPressed: authState.user == null
+                  ? authState.signInAnonymously
+                  : authState.signOut,
+              child: Text(authState.user == null ? 'Anonym anmelden' : 'Abmelden'),
             );
           },
         ),
