@@ -21,13 +21,14 @@ jobs:
     container:
       image: ghcr.io/cirruslabs/flutter:3.19.3
     steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v4
-
-      - name: Configure Git Safe Directory
+      - name: Setup Node.js & Git for Actions
         run: |
+          apt-get update -qq && apt-get install -y -qq nodejs ca-certificates
           git config --global --add safe.directory "$GITHUB_WORKSPACE"
           git config --global --add safe.directory '*'
+
+      - name: Checkout Repository
+        uses: actions/checkout@v4
 
       - name: Make Gradlew Executable
         run: chmod +x android/gradlew
@@ -36,6 +37,7 @@ jobs:
         run: |
           flutter --version
           java -version
+          node --version
 
       - name: Fetch Flutter Dependencies
         run: flutter pub get
