@@ -1,0 +1,35 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // News / Neuigkeiten: Öffentlich lesbar, Schreiben für angemeldete Nutzer
+    match /News/{document=**} {
+      allow read: if true;
+      allow write: if request.auth != null;
+    }
+    
+    // Mängel & Anliegen: Öffentlich lesbar, Erstellen angemeldet, Löschen nur eigener Autor
+    match /Issues/{document} {
+      allow read: if true;
+      allow create: if request.auth != null;
+      allow update: if request.auth != null;
+      allow delete: if request.auth != null && 
+        (resource.data.author_uid == request.auth.uid);
+    }
+    
+    // Bürgerforum / Ideen: Öffentlich lesbar, Erstellen angemeldet, Löschen eigener Autor
+    match /CitizensForum/{document} {
+      allow read: if true;
+      allow create: if request.auth != null;
+      allow update: if request.auth != null;
+      allow delete: if request.auth != null && 
+        (resource.data.author_uid == request.auth.uid);
+    }
+    
+    // Kontakt-Nachrichten: Jeder kann einsenden, Lesen nur berechtigte Nutzer
+    match /ContactMessages/{document} {
+      allow create: if true;
+      allow read, update, delete: if request.auth != null;
+    }
+  }
+}
