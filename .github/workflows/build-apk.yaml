@@ -21,7 +21,7 @@ jobs:
     container:
       image: ghcr.io/cirruslabs/flutter:3.19.3
     steps:
-      - name: Setup Node.js 20 & Git for Actions
+      - name: Setup Node.js 20 & ARM64 Flutter Engine
         run: |
           ARCH=$(uname -m)
           if [ "$ARCH" = "aarch64" ] || [ "$ARCH" = "arm64" ]; then NODE_ARCH="arm64"; else NODE_ARCH="x64"; fi
@@ -29,6 +29,27 @@ jobs:
           node --version
           git config --global --add safe.directory "$GITHUB_WORKSPACE"
           git config --global --add safe.directory '*'
+
+          # On Linux ARM64, Flutter engine lacks native linux-arm64 gen_snapshot cross-compilers.
+          # We install qemu-user-static and generate thin wrappers to run the linux-x64 gen_snapshot seamlessly.
+          if [ "$ARCH" = "aarch64" ] || [ "$ARCH" = "arm64" ]; then
+            echo "Setting up ARM64 Flutter gen_snapshot wrappers via QEMU..."
+            apt-get update -qq && apt-get install -y -qq qemu-user-static
+            QEMU_BIN=$(command -v qemu-x86_64-static || command -v qemu-x86_64)
+            flutter precache --android
+            for dir in /sdks/flutter/bin/cache/artifacts/engine/android-*; do
+              if [ -d "$dir/linux-x64" ]; then
+                mkdir -p "$dir/linux-arm64"
+                cat << EOF > "$dir/linux-arm64/gen_snapshot"
+#!/bin/sh
+SCRIPT_DIR="\$(cd "\$(dirname "\$0")" && pwd)"
+exec $QEMU_BIN "\$SCRIPT_DIR/../linux-x64/gen_snapshot" "\$@"
+EOF
+                chmod +x "$dir/linux-arm64/gen_snapshot"
+                echo "Configured gen_snapshot wrapper for $(basename "$dir")"
+              fi
+            done
+          fi
 
       - name: Checkout Repository
         uses: actions/checkout@v4
