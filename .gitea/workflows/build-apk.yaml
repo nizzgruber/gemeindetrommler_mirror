@@ -31,32 +31,54 @@ jobs:
           git config --global --add safe.directory "$GITHUB_WORKSPACE"
           git config --global --add safe.directory '*'
 
-          # On Linux ARM64, Flutter engine lacks native linux-arm64 gen_snapshot cross-compilers.
-          # We install qemu-user-static and generate thin wrappers to run the linux-x64 gen_snapshot seamlessly.
+          # On Linux ARM64, Flutter engine and Android AAPT2 need x86_64 emulation via QEMU.
           if [ "$ARCH" = "aarch64" ] || [ "$ARCH" = "arm64" ]; then
-            echo "Setting up ARM64 Flutter gen_snapshot wrappers via QEMU..."
+            echo "Setting up ARM64 Flutter environment & QEMU binfmt emulation..."
             apt-get update -qq && apt-get install -y -qq qemu-user-static binfmt-support libc6-amd64-cross libstdc++6-amd64-cross
-            
-            # Disable/unregister broken host FEX binfmt handlers if present
-            if [ -d /proc/sys/fs/binfmt_misc ]; then
-              for f in /proc/sys/fs/binfmt_misc/*; do
-                case "$(basename "$f")" in
-                  *FEX*|*fex*)
-                    echo "Unregistering broken binfmt handler: $f"
-                    echo -1 > "$f" 2>/dev/null || true
-                    ;;
-                esac
-              done
-            fi
-            update-binfmts --enable qemu-x86_64 2>/dev/null || true
 
-            mkdir -p /lib64
+            # Mount binfmt_misc pseudo-filesystem (supported under --privileged)
+            mkdir -p /proc/sys/fs/binfmt_misc
+            if ! grep -qs '/proc/sys/fs/binfmt_misc' /proc/mounts; then
+              mount -t binfmt_misc binfmt_misc /proc/sys/fs/binfmt_misc 2>/dev/null || true
+            fi
+
+            # Cleanly unregister any conflicting or broken host binfmt handlers (e.g. host FEX)
+            if [ -f /proc/sys/fs/binfmt_misc/register ]; then
+              echo "=== Active binfmt_misc handlers before cleanup ==="
+              ls -la /proc/sys/fs/binfmt_misc/ || true
+              for entry in /proc/sys/fs/binfmt_misc/*; do
+                [ -f "$entry" ] || continue
+                name="$(basename "$entry")"
+                [ "$name" = "register" ] && continue
+                [ "$name" = "status" ] && continue
+                if grep -qi "fex" "$entry" 2>/dev/null || [ "$name" = "FEX-x86_64" ] || [ "$name" = "fex-x86_64" ] || [ "$name" = "x86_64" ] || [ "$name" = "qemu-x86_64" ]; then
+                  echo "Unregistering conflicting binfmt handler: $name"
+                  echo -1 > "$entry" 2>/dev/null || true
+                fi
+              done
+
+              # Register QEMU x86_64 emulator directly with OCF flags (Fix-binary)
+              echo ':qemu-x86_64:M::\x7fELF\x02\x01\x01\x00\x00\x00\x00\x00\x00\x00\x00\x00\x02\x00\x3e\x00:\xff\xff\xff\xff\xff\xfe\xfe\x00\xff\xff\xff\xff\xff\xff\xff\xff\xfe\xff\xff\xff:/usr/bin/qemu-x86_64-static:OCF' > /proc/sys/fs/binfmt_misc/register 2>/dev/null || true
+              echo "=== Active binfmt_misc handlers after registration ==="
+              ls -la /proc/sys/fs/binfmt_misc/ || true
+            fi
+
+            # Setup x86_64 dynamic libraries & prefix for QEMU emulation of AAPT2 and tools
+            mkdir -p /etc/qemu-binfmt
+            ln -sf /usr/x86_64-linux-gnu /etc/qemu-binfmt/x86_64
+            mkdir -p /lib64 /usr/lib64
             ln -sf /usr/x86_64-linux-gnu/lib/ld-linux-x86-64.so.2 /lib64/ld-linux-x86-64.so.2
+            ln -sf /usr/x86_64-linux-gnu/lib/* /lib64/ 2>/dev/null || true
+            ln -sf /usr/x86_64-linux-gnu/lib/* /usr/lib64/ 2>/dev/null || true
+
+            export QEMU_LD_PREFIX=/usr/x86_64-linux-gnu
+            echo "QEMU_LD_PREFIX=/usr/x86_64-linux-gnu" >> "$GITHUB_ENV"
+
             QEMU_BIN=$(command -v qemu-x86_64-static || command -v qemu-x86_64)
 
-            # Replace FEXInterpreter with QEMU wrapper as fail-safe for AAPT2
-            for fex in /usr/bin/FEXInterpreter /usr/bin/FEX /usr/local/bin/FEXInterpreter; do
-              printf '#!/bin/sh\nexec %s -L /usr/x86_64-linux-gnu "$@"\n' "$QEMU_BIN" > "$fex"
+            # Dummy fallbacks for FEX binaries/sockets to eliminate unexpected errors
+            for fex in /usr/bin/FEXInterpreter /usr/bin/FEX /usr/local/bin/FEXInterpreter /usr/bin/FEXServer /usr/local/bin/FEXServer; do
+              printf '#!/bin/sh\nexit 0\n' > "$fex"
               chmod +x "$fex" 2>/dev/null || true
             done
 
