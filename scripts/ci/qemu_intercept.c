@@ -1,4 +1,4 @@
-﻿#define _GNU_SOURCE
+#define _GNU_SOURCE
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -27,9 +27,9 @@ static char **build_qemu_argv(const char *pathname, char *const argv[]) {
     while (argv && argv[argc]) argc++;
     char **new_argv = (char **)malloc((argc + 4) * sizeof(char *));
     if (!new_argv) return NULL;
-    new_argv[0] =  /usr/bin/qemu-x86_64-static;
-    new_argv[1] = -L;
-    new_argv[2] = /usr/x86_64-linux-gnu;
+    new_argv[0] = "/usr/bin/qemu-x86_64-static";
+    new_argv[1] = "-L";
+    new_argv[2] = "/usr/x86_64-linux-gnu";
     new_argv[3] = (char *)pathname;
     for (int i = 1; i < argc; i++) {
         new_argv[i + 3] = argv[i];
@@ -40,11 +40,11 @@ static char **build_qemu_argv(const char *pathname, char *const argv[]) {
 
 int execve(const char *pathname, char *const argv[], char *const envp[]) {
     static int (*real_execve)(const char *, char *const [], char *const []) = NULL;
-    if (!real_execve) real_execve = (int (*)(const char *, char *const [], char *const []))dlsym(RTLD_NEXT, execve);
+    if (!real_execve) real_execve = (int (*)(const char *, char *const [], char *const []))dlsym(RTLD_NEXT, "execve");
     if (pathname && is_x86_64_elf(pathname)) {
         char **new_argv = build_qemu_argv(pathname, argv);
         if (new_argv) {
-            return real_execve(/usr/bin/qemu-x86_64-static, new_argv, envp);
+            return real_execve("/usr/bin/qemu-x86_64-static", new_argv, envp);
         }
     }
     return real_execve(pathname, argv, envp);
@@ -72,12 +72,12 @@ int posix_spawn(pid_t *pid, const char *path,
                                   const posix_spawnattr_t *, char *const [], char *const []) = NULL;
     if (!real_posix_spawn) {
         real_posix_spawn = (int (*)(pid_t *, const char *, const posix_spawn_file_actions_t *,
-                                   const posix_spawnattr_t *, char *const [], char *const []))dlsym(RTLD_NEXT, posix_spawn);
+                                   const posix_spawnattr_t *, char *const [], char *const []))dlsym(RTLD_NEXT, "posix_spawn");
     }
     if (path && is_x86_64_elf(path)) {
         char **new_argv = build_qemu_argv(path, argv);
         if (new_argv) {
-            return real_posix_spawn(pid, /usr/bin/qemu-x86_64-static, file_actions, attrp, new_argv, envp);
+            return real_posix_spawn(pid, "/usr/bin/qemu-x86_64-static", file_actions, attrp, new_argv, envp);
         }
     }
     return real_posix_spawn(pid, path, file_actions, attrp, argv, envp);
