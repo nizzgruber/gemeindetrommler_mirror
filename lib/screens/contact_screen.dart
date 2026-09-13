@@ -83,8 +83,12 @@ class _ContactScreenState extends State<ContactScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      appBar: AppBar(
+        title: const Text('Kontakt Bürgerforum'),
+        centerTitle: true,
+      ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16.0),
+        padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
         child: Form(
           key: _formKey,
           child: Column(
@@ -102,7 +106,7 @@ class _ContactScreenState extends State<ContactScreen> {
                       SizedBox(width: 12),
                       Expanded(
                         child: Text(
-                          'Hier können Sie auch ohne Anmeldung direkt mit der Bürgerliste / Gemeindevertretung in Kontakt treten.',
+                          'Hier kannst du direkt mit dem Bürgerforum Oggau in Kontakt treten. Wir freuen uns über deine Anregungen und Fragen!',
                           style: TextStyle(fontSize: 13),
                         ),
                       ),

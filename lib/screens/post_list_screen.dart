@@ -124,13 +124,32 @@ class _PostListScreenState extends State<PostListScreen> {
                 autofocus: true,
                 style: const TextStyle(color: Colors.black87),
                 decoration: InputDecoration(
-                  hintText: 'Suche nach ${widget.title}...',
+                  hintText: 'Suche in ${widget.title}...',
                   border: InputBorder.none,
                   hintStyle: TextStyle(color: Colors.grey.shade600),
                 ),
                 onChanged: (val) => setState(() => _searchQuery = val.trim()),
               )
-            : Text(widget.title),
+            : Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(6),
+                    child: Image.asset(
+                      'assets/images/logo.png',
+                      height: 26,
+                      fit: BoxFit.contain,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Flexible(
+                    child: Text(
+                      widget.title,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ],
+              ),
         actions: [
           IconButton(
             icon: Icon(_isSearchActive ? Icons.close : Icons.search),

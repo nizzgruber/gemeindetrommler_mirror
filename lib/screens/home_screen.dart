@@ -16,11 +16,11 @@ class _HomeScreenState extends State<HomeScreen> {
   final List<Widget> _pages = const [
     PostListScreen(
       collectionName: 'News',
-      title: 'Nachrichten & Aktuelles',
+      title: 'Bürgerforum Aktuelles',
     ),
     PostListScreen(
       collectionName: 'Issues',
-      title: 'Mängel & Bürgeranliegen',
+      title: 'Mängel & Anliegen',
     ),
     PostListScreen(
       collectionName: 'CitizensForum',
@@ -75,7 +75,7 @@ class _HomeScreenState extends State<HomeScreen> {
           BottomNavigationBarItem(
             icon: Icon(Icons.info_outline),
             activeIcon: Icon(Icons.info),
-            label: 'Informationen',
+            label: 'Bürgerforum',
           ),
         ],
       ),

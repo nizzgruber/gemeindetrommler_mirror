@@ -22,13 +22,13 @@ class _InfoScreenState extends State<InfoScreen> {
     showDialog(
       context: context,
       builder: (dialogCtx) => AlertDialog(
-        title: const Text('Gemeinde-Zugang freischalten'),
+        title: const Text('Bürgerforum-Zugang'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const Text(
-              'Geben Sie das Passwort bzw. den Zugangscode der Marktgemeinde Oggau ein, um Mängel zu melden und im Bürgerforum mitzuwirken.',
+              'Gib den Zugangscode des Bürgerforums Oggau ein, um Mängel zu melden und eigene Ideen einzubringen.',
               style: TextStyle(fontSize: 13),
             ),
             const SizedBox(height: 16),
@@ -36,7 +36,7 @@ class _InfoScreenState extends State<InfoScreen> {
               controller: _codeController,
               obscureText: true,
               decoration: const InputDecoration(
-                labelText: 'Gemeinde-Passwort',
+                labelText: 'Zugangscode',
                 border: OutlineInputBorder(),
                 hintText: 'z.B. oggau',
               ),
@@ -59,7 +59,7 @@ class _InfoScreenState extends State<InfoScreen> {
                 SnackBar(
                   content: Text(success
                       ? 'Zugang erfolgreich freigeschaltet!'
-                      : 'Ungültiges Passwort. Bitte kontaktieren Sie das Gemeindeamt.'),
+                      : 'Ungültiger Code. Bitte wende dich an das Bürgerforum Oggau.'),
                   backgroundColor: success ? Colors.green : Colors.red,
                 ),
               );
@@ -76,25 +76,60 @@ class _InfoScreenState extends State<InfoScreen> {
     final auth = Provider.of<AuthService>(context);
 
     return Scaffold(
+      appBar: AppBar(
+        title: const Text('Bürgerforum Oggau'),
+        centerTitle: true,
+      ),
       body: ListView(
-        padding: const EdgeInsets.all(16.0),
+        padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
         children: [
-          // Community Access Card
+          // Bürgerforum Logo & Branding Header
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 8.0),
+            child: Column(
+              children: [
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(12),
+                  child: Image.asset(
+                    'assets/images/logo.png',
+                    height: 72,
+                    fit: BoxFit.contain,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                const Text(
+                  'Bürgerforum Oggau',
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  'Unabhängige Bürgerliste für Oggau am Neusiedler See',
+                  style: TextStyle(fontSize: 12, color: Colors.grey.shade700),
+                  textAlign: TextAlign.center,
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 8),
+          // Bürgerforum Access Status Card
           Card(
             color: auth.isCommunityUnlocked ? Colors.green.shade50 : Colors.blue.shade50,
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             child: Padding(
-              padding: const EdgeInsets.all(16.0),
+              padding: const EdgeInsets.all(14.0),
               child: Row(
                 children: [
                   Icon(
                     auth.isCommunityUnlocked
                         ? Icons.verified_user
                         : Icons.lock_outline,
-                    color: auth.isCommunityUnlocked ? Colors.green : Colors.blue,
-                    size: 36,
+                    color: auth.isCommunityUnlocked ? Colors.green.shade700 : Colors.blue.shade800,
+                    size: 32,
                   ),
-                  const SizedBox(width: 16),
+                  const SizedBox(width: 14),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -104,12 +139,13 @@ class _InfoScreenState extends State<InfoScreen> {
                               ? 'Bürgerzugang: Aktiv'
                               : 'Gastmodus (Nur Lesen)',
                           style: const TextStyle(
-                              fontWeight: FontWeight.bold, fontSize: 16),
+                              fontWeight: FontWeight.bold, fontSize: 15),
                         ),
+                        const SizedBox(height: 2),
                         Text(
                           auth.isCommunityUnlocked
-                              ? 'Sie können Mängel und Ideen einreichen.'
-                              : 'Gemeinde-Passwort eingeben zum Freischalten.',
+                              ? 'Du kannst Mängel und Ideen einreichen.'
+                              : 'Code eingeben, um Beiträge zu erstellen.',
                           style: TextStyle(
                               fontSize: 12, color: Colors.grey.shade700),
                         ),
@@ -117,6 +153,9 @@ class _InfoScreenState extends State<InfoScreen> {
                     ),
                   ),
                   ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    ),
                     onPressed: () {
                       if (auth.isCommunityUnlocked) {
                         auth.lockCommunityAccess();
@@ -124,17 +163,62 @@ class _InfoScreenState extends State<InfoScreen> {
                         _showUnlockDialog(context);
                       }
                     },
-                    child: Text(auth.isCommunityUnlocked ? 'Sperren' : 'Anmelden'),
+                    child: Text(auth.isCommunityUnlocked ? 'Sperren' : 'Freischalten'),
                   ),
                 ],
               ),
             ),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 14),
 
-          // Gemeinde Info Header
+          // About Bürgerforum Oggau
           Card(
-            elevation: 2,
+            elevation: 1.5,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Icon(Icons.campaign, color: Colors.blue.shade800, size: 24),
+                      const SizedBox(width: 8),
+                      const Text(
+                        'Über das Bürgerforum Oggau',
+                        style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+                  const Text(
+                    'Das Bürgerforum Oggau ist eine unabhängige Bürgerliste für unsere Marktgemeinde Oggau am Neusiedler See.\n\n'
+                    'Wir stehen für Bürgernähe, Transparenz und eine zukunftsorientierte Gemeindepolitik. '
+                    'Mit dieser App (unserem digitalen „Gemeindetrommler“) wollen wir allen Bürgerinnen und Bürgern eine unkomplizierte Möglichkeit geben, Mängel im Ort aufzuzeigen, Ideen einzubringen und sich zu informieren.',
+                    style: TextStyle(fontSize: 13, height: 1.45),
+                  ),
+                  const SizedBox(height: 12),
+                  const Divider(),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      const Icon(Icons.group, size: 16, color: Colors.grey),
+                      const SizedBox(width: 8),
+                      Text(
+                        'Gemeindevertretung & Team Bürgerforum',
+                        style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.grey.shade800),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 14),
+
+          // Gemeinde Bürgerservice (Nützliche Kontakte)
+          Card(
+            elevation: 1,
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             child: const Padding(
               padding: EdgeInsets.all(16.0),
@@ -142,33 +226,29 @@ class _InfoScreenState extends State<InfoScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Marktgemeinde Oggau am Neusiedler See',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                    'Gemeindeamt & Bürgerservice Oggau',
+                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
                   ),
                   SizedBox(height: 8),
-                  Text('Hauptstraße 52, 7063 Oggau'),
-                  Text('Telefon: +43 2685 7201'),
-                  Text('E-Mail: post@oggau.bgld.gv.at'),
-                  Text('Web: www.oggau.at'),
-                  SizedBox(height: 12),
-                  Divider(),
+                  Text('Adresse: Hauptstraße 52, 7063 Oggau', style: TextStyle(fontSize: 13)),
+                  Text('Telefon: +43 2685 7201', style: TextStyle(fontSize: 13)),
+                  Text('Web: www.oggau.at', style: TextStyle(fontSize: 13)),
                   SizedBox(height: 8),
                   Text(
-                    'Parteienverkehr / Öffnungszeiten:',
-                    style: TextStyle(fontWeight: FontWeight.bold),
+                    'Öffnungszeiten Gemeindeamt:',
+                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
                   ),
-                  SizedBox(height: 4),
-                  Text('Montag bis Freitag: 08:00 – 12:00 Uhr'),
-                  Text('Dienstag zusätzlich: 13:00 – 17:00 Uhr'),
+                  Text('Mo – Fr: 08:00 – 12:00 Uhr | Di zusätzlich: 13:00 – 17:00 Uhr',
+                      style: TextStyle(fontSize: 12)),
                 ],
               ),
             ),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 14),
 
-          // Notrufnummern
+          // Wichtige Notrufnummern
           Card(
-            elevation: 2,
+            elevation: 1,
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             child: const Padding(
               padding: EdgeInsets.all(16.0),
@@ -177,9 +257,9 @@ class _InfoScreenState extends State<InfoScreen> {
                 children: [
                   Text(
                     'Wichtige Notrufnummern',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.red),
+                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Colors.red),
                   ),
-                  SizedBox(height: 12),
+                  SizedBox(height: 10),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
@@ -187,7 +267,7 @@ class _InfoScreenState extends State<InfoScreen> {
                       Text('122', style: TextStyle(fontWeight: FontWeight.bold)),
                     ],
                   ),
-                  Divider(),
+                  Divider(height: 16),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
@@ -195,7 +275,7 @@ class _InfoScreenState extends State<InfoScreen> {
                       Text('133', style: TextStyle(fontWeight: FontWeight.bold)),
                     ],
                   ),
-                  Divider(),
+                  Divider(height: 16),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
@@ -203,7 +283,7 @@ class _InfoScreenState extends State<InfoScreen> {
                       Text('144', style: TextStyle(fontWeight: FontWeight.bold)),
                     ],
                   ),
-                  Divider(),
+                  Divider(height: 16),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
@@ -211,19 +291,11 @@ class _InfoScreenState extends State<InfoScreen> {
                       Text('112', style: TextStyle(fontWeight: FontWeight.bold)),
                     ],
                   ),
-                  Divider(),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text('Ärztefunkdienst'),
-                      Text('141', style: TextStyle(fontWeight: FontWeight.bold)),
-                    ],
-                  ),
                 ],
               ),
             ),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 14),
 
           // Impressum
           Card(
@@ -235,22 +307,23 @@ class _InfoScreenState extends State<InfoScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Impressum & Rechtliches',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                    'Impressum',
+                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
                   ),
-                  SizedBox(height: 8),
+                  SizedBox(height: 6),
                   Text(
                     'Medieninhaber & Herausgeber:\n'
-                    'Marktgemeinde Oggau am Neusiedler See\n'
-                    'Hauptstraße 52, A-7063 Oggau\n\n'
-                    'Erstellt als Gemeinde-Informationssystem für Bürgerinnen und Bürger.\n'
-                    'Alle Rechte vorbehalten.',
-                    style: TextStyle(fontSize: 12, color: Colors.black87),
+                    'Bürgerforum Oggau (Unabhängige Bürgerliste Oggau)\n'
+                    '7063 Oggau am Neusiedler See\n\n'
+                    'Zweck der App:\n'
+                    'Informations- und Mitmach-Plattform für Bürgerinnen und Bürger der Marktgemeinde Oggau am Neusiedler See.',
+                    style: TextStyle(fontSize: 12, color: Colors.black87, height: 1.4),
                   ),
                 ],
               ),
             ),
           ),
+          const SizedBox(height: 16),
         ],
       ),
     );
