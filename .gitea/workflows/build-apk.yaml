@@ -1,0 +1,79 @@
+name: Build Android APK
+
+on:
+  push:
+    branches:
+      - main
+      - master
+      - 'refactor/**'
+    tags:
+      - 'v*'
+  pull_request:
+    branches:
+      - main
+      - master
+  workflow_dispatch:
+
+jobs:
+  build-android:
+    name: Build Release APKs
+    runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/cirruslabs/flutter:3.19.3
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Configure Git Safe Directory
+        run: |
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
+          git config --global --add safe.directory '*'
+
+      - name: Make Gradlew Executable
+        run: chmod +x android/gradlew
+
+      - name: Inspect Build Environment
+        run: |
+          flutter --version
+          java -version
+
+      - name: Fetch Flutter Dependencies
+        run: flutter pub get
+
+      - name: Run Code Analysis & Tests
+        run: |
+          flutter analyze
+          flutter test
+
+      - name: Build Universal Release APK
+        run: flutter build apk --release
+
+      - name: Build Split-per-ABI Release APKs
+        run: flutter build apk --release --split-per-abi
+
+      - name: Organize Artifacts
+        run: |
+          mkdir -p release-apks
+          # Copy universal APK
+          if [ -f build/app/outputs/flutter-apk/app-release.apk ]; then
+            cp build/app/outputs/flutter-apk/app-release.apk release-apks/oggauer-gemeindetrommler-universal-release.apk
+          fi
+          # Copy split APKs
+          if [ -f build/app/outputs/flutter-apk/app-arm64-v8a-release.apk ]; then
+            cp build/app/outputs/flutter-apk/app-arm64-v8a-release.apk release-apks/oggauer-gemeindetrommler-arm64-v8a.apk
+          fi
+          if [ -f build/app/outputs/flutter-apk/app-armeabi-v7a-release.apk ]; then
+            cp build/app/outputs/flutter-apk/app-armeabi-v7a-release.apk release-apks/oggauer-gemeindetrommler-armeabi-v7a.apk
+          fi
+          if [ -f build/app/outputs/flutter-apk/app-x86_64-release.apk ]; then
+            cp build/app/outputs/flutter-apk/app-x86_64-release.apk release-apks/oggauer-gemeindetrommler-x86_64.apk
+          fi
+          echo "=== Generated APK Artifacts ==="
+          ls -lah release-apks/
+
+      - name: Upload APKs to Gitea Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: oggauer-gemeindetrommler-apks
+          path: release-apks/*.apk
+          retention-days: 30

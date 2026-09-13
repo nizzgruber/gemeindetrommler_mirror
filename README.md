@@ -63,16 +63,47 @@ Basierend auf dem ursprünglichen Lastenheft von Thomas und den UI-Wireframes (`
 ### Projektstruktur (`lib/`):
 ```text
 lib/
-├── AddPage.dart          # Erfassungsdialog für Beiträge, Mängel & Ideen (Upload, Crop)
-├── DetailPage.dart       # Detailansicht für einzelne Beiträge inkl. PDF-Export
-├── LoginPage.dart        # (Fragment) E-Mail/Passwort-Loginmaske (nicht verdrahtet)
-├── register.dart         # (Fragment) Registrierungsmaske (nicht verdrahtet)
-├── UserDefinedList.dart  # Universelle Listenanzeige, Firestore-Stream, Selektion & Sammel-PDF
-├── anonym_aut.dart       # AuthState Provider & einfacher anonymer Login-Screen
-├── firebase_options.dart # Firebase-Projektkonfiguration (Android & iOS)
-├── home.dart             # Haupt-Scaffold mit BottomNavigationBar (4 Tabs)
-└── main.dart             # App-Einstiegspunkt, Firebase Init & MultiProvider
+├── firebase_options.dart   # Firebase-Projektkonfiguration (Android & iOS)
+├── main.dart               # App-Einstiegspunkt, Firebase Init & MultiProvider
+├── models/
+│   └── post_item.dart      # Typisiertes Datenmodell für News, Mängel & Ideen
+├── screens/
+│   ├── add_issue_screen.dart # Mängelerfassung mit Straßenauswahl & bis zu 2 Fotos
+│   ├── add_post_screen.dart  # Universelle Erfassung für News & Bürgerideen
+│   ├── auth_dialog.dart      # Anmelde-, Registrierungs- & Code-Freischaltungs-Dialog
+│   ├── contact_screen.dart   # Bürgerforum-Kontaktformular & Anfragen
+│   ├── detail_screen.dart    # Detailansicht mit Metadaten & PDF-Einzelexport
+│   ├── home_screen.dart      # Haupt-Scaffold mit 5 Tabs (News, Mängel, Ideen, Kontakt, Info)
+│   ├── info_screen.dart      # Bürgerforum Leitbild, Notrufnummern & Account-Status
+│   └── post_list_screen.dart # Universelle Listenansicht, Echtzeitsuche & PDF-Tabelle
+└── services/
+    ├── auth_service.dart     # Hybrid-Auth (E-Mail/Passwort, Bürger-Code, Anonym)
+    ├── firestore_service.dart# NoSQL CRUD & Kontaktanfragen
+    ├── pdf_service.dart      # PDF-Druckerzeugung (Listen & Einzelansichten)
+    └── storage_service.dart  # Optimierter Bild-Upload (Querformat max 800x600)
 ```
+
+---
+
+## 🤖 CI/CD Pipeline (Gitea Actions)
+
+Die App verfügt über eine vollautomatische Build-Pipeline für **Gitea Actions** (`.gitea/workflows/build-apk.yaml`):
+
+### Funktionen der Pipeline:
+- **Automatische Trigger:** Wird bei jedem `push` auf `main`, `master`, `refactor/**`, bei Git-Tags (`v*`) oder manuell im Webinterface (`workflow_dispatch`) ausgelöst.
+- **Isolierte Build-Umgebung:** Nutzt das offizielle `ghcr.io/cirruslabs/flutter:3.19.3` Docker-Image mit vorinstalliertem Android SDK, Java 17 und Flutter.
+- **Qualitätssicherung:** Führt automatisch `flutter analyze` und `flutter test` aus, bevor der Build startet.
+- **Vollständige APK-Generierung:**
+  - `oggauer-gemeindetrommler-universal-release.apk` (Universelle Release-APK für alle Android-Geräte)
+  - `oggauer-gemeindetrommler-arm64-v8a.apk` (Für moderne 64-Bit Smartphones)
+  - `oggauer-gemeindetrommler-armeabi-v7a.apk` (Für ältere 32-Bit Smartphones)
+  - `oggauer-gemeindetrommler-x86_64.apk` (Für Emulatoren & ChromeOS)
+- **Artifact-Upload:** Speichert die fertigen APKs als herunterladbare ZIP-Datei (`oggauer-gemeindetrommler-apks`) direkt im Gitea Run-Dashboard.
+
+### APKs in Gitea herunterladen:
+1. Im Gitea-Repository auf den Reiter **Aktionen** (*Actions*) klicken.
+2. Den gewünschten Pipeline-Durchlauf auswählen.
+3. Im Abschnitt **Artefakte** (*Artifacts*) das Paket `oggauer-gemeindetrommler-apks` herunterladen.
 
 ---
 
@@ -92,31 +123,14 @@ flutter pub get
 # 2. Statische Code-Analyse ausführen
 flutter analyze
 
-# 3. App starten
+# 3. Tests ausführen
+flutter test
+
+# 4. App lokal starten
 flutter run
 ```
 
 ---
 
-## 🚀 Empfohlene Verbesserungen & Roadmap
-
-Die Erstellung durch frühe KI-Modelle hat zu funktionalen Proof-of-Concepts geführt, weist jedoch typischen Refactoring-Bedarf auf:
-
-1. **Code-Hygiene & Best Practices:**
-   - Umbenennung der Dateien nach Dart-Konvention (`snake_case`, z. B. `add_page.dart`, `detail_page.dart`).
-   - Behebung der `flutter analyze` Warnungen (Deprecations wie `enablePersistence`, `BuildContext` across async gaps, ungenutzte Imports).
-   - Saubere Abhängigkeitsdeklaration (`http` direkt in `pubspec.yaml` aufnehmen).
-2. **Architektur & Wartbarkeit:**
-   - Trennung von UI und Business-Logik (Einführung von Repositories / Services für Firestore und Firebase Storage).
-   - Auslagerung der CPU-intensiven Bildverarbeitung (`image.decodeImage`) in Isolate (`compute`), um UI-Ruckler zu vermeiden.
-3. **Vervollständigung der Fachanforderungen:**
-   - **Kontakt-Formular:** Umsetzung mit Pflichtfeldern und Mail-Trigger (z. B. via Firebase Extension `Trigger Email` oder Cloud Function).
-   - **Informationen / Impressum / Veranstaltungen:** Fünfter Tab gemäß Anforderung.
-   - **Mängelmeldung:** Dropdown für Straßenverzeichnis Oggau und Grundlage; Unterstützung von bis zu 2 Fotos im Querformat.
-   - **Volltextsuche:** Suchleiste / Suchsymbol in den Listenansichten.
-   - **Zugangskonzept:** Echtes Bürger-Passwort bzw. PIN-Schutz statt reinem anonymen Login.
-
----
-
 ## 📄 Lizenz & Urheberschaft
-Erstellt für die Marktgemeinde Oggau am Neusiedler See. Private Verwendung.
+Entwickelt für das **Bürgerforum Oggau**. Private & gemeinnützige Verwendung.
