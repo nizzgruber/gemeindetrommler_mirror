@@ -20,6 +20,7 @@ jobs:
     runs-on: ubuntu-latest
     container:
       image: ghcr.io/cirruslabs/flutter:3.19.3
+      options: --privileged
     steps:
       - name: Setup Node.js 20 & ARM64 Flutter Engine
         run: |
@@ -34,7 +35,8 @@ jobs:
           # We install qemu-user-static and generate thin wrappers to run the linux-x64 gen_snapshot seamlessly.
           if [ "$ARCH" = "aarch64" ] || [ "$ARCH" = "arm64" ]; then
             echo "Setting up ARM64 Flutter gen_snapshot wrappers via QEMU..."
-            apt-get update -qq && apt-get install -y -qq qemu-user-static libc6-amd64-cross libstdc++6-amd64-cross
+            apt-get update -qq && apt-get install -y -qq qemu-user-static binfmt-support libc6-amd64-cross libstdc++6-amd64-cross
+            update-binfmts --enable qemu-x86_64 2>/dev/null || true
             mkdir -p /lib64
             ln -sf /usr/x86_64-linux-gnu/lib/ld-linux-x86-64.so.2 /lib64/ld-linux-x86-64.so.2
             QEMU_BIN=$(command -v qemu-x86_64-static || command -v qemu-x86_64)
