@@ -21,9 +21,12 @@ jobs:
     container:
       image: ghcr.io/cirruslabs/flutter:3.19.3
     steps:
-      - name: Setup Node.js & Git for Actions
+      - name: Setup Node.js 20 & Git for Actions
         run: |
-          apt-get update -qq && apt-get install -y -qq nodejs ca-certificates
+          ARCH=$(uname -m)
+          if [ "$ARCH" = "aarch64" ] || [ "$ARCH" = "arm64" ]; then NODE_ARCH="arm64"; else NODE_ARCH="x64"; fi
+          curl -fsSL "https://nodejs.org/dist/v20.18.0/node-v20.18.0-linux-${NODE_ARCH}.tar.gz" | tar -xzf - -C /usr/local --strip-components=1
+          node --version
           git config --global --add safe.directory "$GITHUB_WORKSPACE"
           git config --global --add safe.directory '*'
 
