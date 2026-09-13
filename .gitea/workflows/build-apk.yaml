@@ -40,11 +40,7 @@ jobs:
             for dir in /sdks/flutter/bin/cache/artifacts/engine/android-*; do
               if [ -d "$dir/linux-x64" ]; then
                 mkdir -p "$dir/linux-arm64"
-                cat << EOF > "$dir/linux-arm64/gen_snapshot"
-#!/bin/sh
-SCRIPT_DIR="\$(cd "\$(dirname "\$0")" && pwd)"
-exec $QEMU_BIN "\$SCRIPT_DIR/../linux-x64/gen_snapshot" "\$@"
-EOF
+                printf '#!/bin/sh\nSCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"\nexec %s "$SCRIPT_DIR/../linux-x64/gen_snapshot" "$@"\n' "$QEMU_BIN" > "$dir/linux-arm64/gen_snapshot"
                 chmod +x "$dir/linux-arm64/gen_snapshot"
                 echo "Configured gen_snapshot wrapper for $(basename "$dir")"
               fi
