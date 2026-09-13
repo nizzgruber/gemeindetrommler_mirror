@@ -1,15 +1,19 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:printing/printing.dart';
+import 'package:provider/provider.dart';
 import 'AddPage.dart';
 import 'DetailPage.dart';
 import 'package:intl/intl.dart';
 import 'package:pdf/widgets.dart' as pdfWidgets;
 import 'package:http/http.dart' as http;
 import 'package:image/image.dart' as img;
+
+import 'anonym_aut.dart';
 
 class UserDefinedItem extends StatelessWidget {
   final String title;
@@ -208,23 +212,59 @@ class _GenericListState extends State<GenericList> {
                       final DateTime createdDate = data['createdDate'].toDate();
                       final formattedDate =
                       DateFormat('dd.MM.yyyy').format(createdDate);
-                      return Dismissible(
-                        key: UniqueKey(),
-                        direction: DismissDirection.endToStart,
-                        onDismissed: (direction) {
-                          _deleteDocument(documentId, data['imageUrl']);
-                        },
-                        background: Container(
-                          color: Colors.red,
-                          child: const Align(
-                            alignment: Alignment.centerRight,
-                            child: Padding(
-                              padding: EdgeInsets.only(right: 16),
-                              child: Icon(Icons.delete, color: Colors.white),
+                      final currentUser = FirebaseAuth.instance.currentUser;
+
+                      if (currentUser != null && data['author_uid'] == currentUser.uid) {
+                        return Dismissible(
+                          key: UniqueKey(),
+                          direction: DismissDirection.endToStart,
+                          onDismissed: (direction) {
+                            _deleteDocument(documentId, data['imageUrl']);
+                          },
+                          background: Container(
+                            color: Colors.red,
+                            child: const Align(
+                              alignment: Alignment.centerRight,
+                              child: Padding(
+                                padding: EdgeInsets.only(right: 16),
+                                child: Icon(Icons.delete, color: Colors.white),
+                              ),
                             ),
                           ),
-                        ),
-                        child: UserDefinedItem(
+                          child: UserDefinedItem(
+                            title: data['title'] ?? '',
+                            datum: formattedDate,
+                            description: data['description'] ?? '',
+                            imageUrl: data['imageUrl'] ?? '',
+                            isSelected: selectedItems.containsKey(documentId),
+                            onTap: () {
+                              clearSelectedItems();
+                              // Open a new screen when the user taps on the list item
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => DetailPage(
+                                    title: data['title'],
+                                    datum: formattedDate,
+                                    description: data['description'],
+                                    imageUrl: data['imageUrl'],
+                                  ),
+                                ),
+                              );
+                            },
+                            onLongPress: () {
+                              setState(() {
+                                if (selectedItems.containsKey(documentId)) {
+                                  selectedItems.remove(documentId);
+                                } else {
+                                  selectedItems[documentId] = data;
+                                }
+                              });
+                            },
+                          ),
+                        );
+                      } else {
+                        return UserDefinedItem(
                           title: data['title'] ?? '',
                           datum: formattedDate,
                           description: data['description'] ?? '',
@@ -254,8 +294,9 @@ class _GenericListState extends State<GenericList> {
                               }
                             });
                           },
-                        ),
-                      );
+                        );
+                      }
+
                     },
                   );
               }
@@ -295,17 +336,26 @@ class _GenericListState extends State<GenericList> {
         ],
 
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          clearSelectedItems();
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (context) => AddScreen(initialIndex: widget.selectedIndex)),
-          );
+      floatingActionButton: Consumer<AuthState>(
+        builder: (context, authState, child) {
+          if (authState.user != null) {
+            return FloatingActionButton(
+              onPressed: () {
+                clearSelectedItems();
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => AddScreen(initialIndex: widget.selectedIndex)),
+                );
+              },
+              tooltip: "Neues Element hinzufügen",
+              child: const Icon(Icons.add),
+            );
+          } else {
+            return Container();  // Return an empty container when the user is not signed in
+          }
         },
-        tooltip: "Neues Element hinzufügen",
-        child: const Icon(Icons.add),
       ),
+
     );
   }
 
@@ -318,7 +368,7 @@ class _GenericListState extends State<GenericList> {
     final Uint8List bytes = response.bodyBytes;
 
     final img.Image? image = img.decodeImage(bytes);
-    final img.Image resizedImage = img.copyResize(image!, width: 500); // Beispielwert für die Breite
+    final img.Image resizedImage = img.copyResize(image!, width: 290); // Beispielwert für die Breite
     final Uint8List resizedBytes = Uint8List.fromList(img.encodeJpg(resizedImage));
 
     final imageProvider = pdfWidgets.MemoryImage(resizedBytes);
