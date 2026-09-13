@@ -10,6 +10,7 @@ import '../services/pdf_service.dart';
 import '../services/storage_service.dart';
 import 'add_issue_screen.dart';
 import 'add_post_screen.dart';
+import 'auth_dialog.dart';
 import 'detail_screen.dart';
 
 class PostListScreen extends StatefulWidget {
@@ -75,19 +76,15 @@ class _PostListScreenState extends State<PostListScreen> {
     }
   }
 
-  void _onAddNewPressed(BuildContext context) {
+  Future<void> _onAddNewPressed() async {
     final auth = Provider.of<AuthService>(context, listen: false);
 
     if (!auth.isCommunityUnlocked && !auth.isAuthenticated) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'Bitte schalten Sie den Zugang unter "Informationen" mit dem Gemeinde-Passwort frei.',
-          ),
-          backgroundColor: Colors.orange,
-        ),
-      );
-      return;
+      await AuthDialog.show(context);
+      if (!mounted) return;
+      if (!auth.isCommunityUnlocked && !auth.isAuthenticated) {
+        return;
+      }
     }
 
     _clearSelection();
@@ -413,7 +410,7 @@ class _PostListScreenState extends State<PostListScreen> {
         },
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: () => _onAddNewPressed(context),
+        onPressed: _onAddNewPressed,
         tooltip: 'Neuen Eintrag erstellen',
         child: const Icon(Icons.add),
       ),

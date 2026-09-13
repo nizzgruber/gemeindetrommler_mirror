@@ -12,7 +12,11 @@ class AuthService extends ChangeNotifier {
 
   User? get user => _user;
   bool get isAuthenticated => _user != null;
-  bool get isCommunityUnlocked => _isCommunityUnlocked;
+  bool get isAnonymous => _user?.isAnonymous ?? true;
+  bool get isRegisteredUser => _user != null && !_user!.isAnonymous;
+  bool get isCommunityUnlocked => _isCommunityUnlocked || isRegisteredUser;
+  String? get email => _user?.email;
+  String? get displayName => _user?.displayName;
 
   AuthService() {
     _initAuth();
@@ -27,26 +31,30 @@ class AuthService extends ChangeNotifier {
       notifyListeners();
     });
 
-    // Automatically ensure anonymous login if unlocked
     if (_user == null && _isCommunityUnlocked) {
       await signInAnonymously();
     }
   }
 
+  /// Verifies community access code
   Future<bool> verifyCommunityCode(String enteredCode) async {
     final cleanCode = enteredCode.trim().toLowerCase();
-    // Accept default code 'oggau' or any custom community password
-    if (cleanCode == defaultCommunityCode || cleanCode == 'oggau2024' || cleanCode == 'oggau7063') {
+    if (cleanCode == defaultCommunityCode ||
+        cleanCode == 'oggau2024' ||
+        cleanCode == 'oggau7063') {
       _isCommunityUnlocked = true;
       final prefs = await SharedPreferences.getInstance();
       await prefs.setBool(_prefKeyUnlocked, true);
-      await signInAnonymously();
+      if (_user == null) {
+        await signInAnonymously();
+      }
       notifyListeners();
       return true;
     }
     return false;
   }
 
+  /// Lock community access and log out
   Future<void> lockCommunityAccess() async {
     _isCommunityUnlocked = false;
     final prefs = await SharedPreferences.getInstance();
@@ -55,6 +63,60 @@ class AuthService extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Sign in with Email and Password
+  Future<String?> signInWithEmail(String email, String password) async {
+    try {
+      final credential = await _auth.signInWithEmailAndPassword(
+        email: email.trim(),
+        password: password,
+      );
+      _user = credential.user;
+      notifyListeners();
+      return null; // success
+    } on FirebaseAuthException catch (e) {
+      return _getLocalizedErrorMessage(e.code);
+    } catch (e) {
+      return 'Ein unerwarteter Fehler ist aufgetreten: $e';
+    }
+  }
+
+  /// Sign up with Email, Password, and Full Name
+  Future<String?> signUpWithEmail({
+    required String email,
+    required String password,
+    required String name,
+  }) async {
+    try {
+      final credential = await _auth.createUserWithEmailAndPassword(
+        email: email.trim(),
+        password: password,
+      );
+      _user = credential.user;
+      if (_user != null && name.isNotEmpty) {
+        await _user!.updateDisplayName(name.trim());
+      }
+      notifyListeners();
+      return null; // success
+    } on FirebaseAuthException catch (e) {
+      return _getLocalizedErrorMessage(e.code);
+    } catch (e) {
+      return 'Ein unerwarteter Fehler ist aufgetreten: $e';
+    }
+  }
+
+  /// Send password reset email
+  Future<String?> sendPasswordReset(String email) async {
+    try {
+      await _auth.sendPasswordResetEmail(email: email.trim());
+      return null; // success
+    } on FirebaseAuthException catch (e) {
+      return _getLocalizedErrorMessage(e.code);
+    } catch (e) {
+      return 'Fehler beim Senden der E-Mail: $e';
+    }
+  }
+
+  /// Anonymous login
   Future<void> signInAnonymously() async {
     try {
       await _auth.signInAnonymously();
@@ -65,6 +127,7 @@ class AuthService extends ChangeNotifier {
     }
   }
 
+  /// Sign out
   Future<void> signOut() async {
     try {
       await _auth.signOut();
@@ -72,6 +135,28 @@ class AuthService extends ChangeNotifier {
       if (kDebugMode) {
         debugPrint('Sign out error: $e');
       }
+    }
+  }
+
+  String _getLocalizedErrorMessage(String code) {
+    switch (code) {
+      case 'user-not-found':
+        return 'Kein Benutzer mit dieser E-Mail-Adresse gefunden.';
+      case 'wrong-password':
+      case 'invalid-credential':
+        return 'Falsches Passwort oder ungültige Anmeldedaten.';
+      case 'email-already-in-use':
+        return 'Diese E-Mail-Adresse wird bereits für ein Konto verwendet.';
+      case 'invalid-email':
+        return 'Bitte gib eine gültige E-Mail-Adresse ein.';
+      case 'weak-password':
+        return 'Das Passwort ist zu schwach (mindestens 6 Zeichen erforderlich).';
+      case 'too-many-requests':
+        return 'Zu viele fehlgeschlagene Versuche. Bitte warte kurz.';
+      case 'network-request-failed':
+        return 'Keine Internetverbindung vorhanden.';
+      default:
+        return 'Authentifizierungsfehler ($code).';
     }
   }
 }

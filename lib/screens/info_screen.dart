@@ -1,75 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../services/auth_service.dart';
+import 'auth_dialog.dart';
 
-class InfoScreen extends StatefulWidget {
+class InfoScreen extends StatelessWidget {
   const InfoScreen({super.key});
-
-  @override
-  State<InfoScreen> createState() => _InfoScreenState();
-}
-
-class _InfoScreenState extends State<InfoScreen> {
-  final TextEditingController _codeController = TextEditingController();
-
-  @override
-  void dispose() {
-    _codeController.dispose();
-    super.dispose();
-  }
-
-  void _showUnlockDialog(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (dialogCtx) => AlertDialog(
-        title: const Text('Bürgerforum-Zugang'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Gib den Zugangscode des Bürgerforums Oggau ein, um Mängel zu melden und eigene Ideen einzubringen.',
-              style: TextStyle(fontSize: 13),
-            ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: _codeController,
-              obscureText: true,
-              decoration: const InputDecoration(
-                labelText: 'Zugangscode',
-                border: OutlineInputBorder(),
-                hintText: 'z.B. oggau',
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogCtx),
-            child: const Text('Abbrechen'),
-          ),
-          ElevatedButton(
-            onPressed: () async {
-              final auth = Provider.of<AuthService>(context, listen: false);
-              final success =
-                  await auth.verifyCommunityCode(_codeController.text);
-              if (!dialogCtx.mounted) return;
-              Navigator.pop(dialogCtx);
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text(success
-                      ? 'Zugang erfolgreich freigeschaltet!'
-                      : 'Ungültiger Code. Bitte wende dich an das Bürgerforum Oggau.'),
-                  backgroundColor: success ? Colors.green : Colors.red,
-                ),
-              );
-            },
-            child: const Text('Freischalten'),
-          ),
-        ],
-      ),
-    );
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -114,57 +49,108 @@ class _InfoScreenState extends State<InfoScreen> {
             ),
           ),
           const SizedBox(height: 8),
-          // Bürgerforum Access Status Card
+          // Bürgerforum Access & Account Card
           Card(
-            color: auth.isCommunityUnlocked ? Colors.green.shade50 : Colors.blue.shade50,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            color: auth.isRegisteredUser
+                ? Colors.green.shade50
+                : auth.isCommunityUnlocked
+                    ? Colors.teal.shade50
+                    : Colors.blue.shade50,
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             child: Padding(
               padding: const EdgeInsets.all(14.0),
-              child: Row(
+              child: Column(
                 children: [
-                  Icon(
-                    auth.isCommunityUnlocked
-                        ? Icons.verified_user
-                        : Icons.lock_outline,
-                    color: auth.isCommunityUnlocked ? Colors.green.shade700 : Colors.blue.shade800,
-                    size: 32,
-                  ),
-                  const SizedBox(width: 14),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          auth.isCommunityUnlocked
-                              ? 'Bürgerzugang: Aktiv'
-                              : 'Gastmodus (Nur Lesen)',
-                          style: const TextStyle(
-                              fontWeight: FontWeight.bold, fontSize: 15),
+                  Row(
+                    children: [
+                      Icon(
+                        auth.isRegisteredUser
+                            ? Icons.account_circle
+                            : auth.isCommunityUnlocked
+                                ? Icons.verified_user
+                                : Icons.lock_outline,
+                        color: auth.isRegisteredUser
+                            ? Colors.green.shade700
+                            : auth.isCommunityUnlocked
+                                ? Colors.teal.shade800
+                                : Colors.blue.shade800,
+                        size: 36,
+                      ),
+                      const SizedBox(width: 14),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              auth.isRegisteredUser
+                                  ? (auth.displayName?.isNotEmpty == true
+                                      ? auth.displayName!
+                                      : 'Bürger-Konto')
+                                  : auth.isCommunityUnlocked
+                                      ? 'Bürgerzugang: Aktiv (Code)'
+                                      : 'Gastmodus (Nur Lesen)',
+                              style: const TextStyle(
+                                  fontWeight: FontWeight.bold, fontSize: 15),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              auth.isRegisteredUser
+                                  ? auth.email ?? 'Angemeldet'
+                                  : auth.isCommunityUnlocked
+                                      ? 'Mängel & Ideen freigeschaltet'
+                                      : 'Anmelden oder Code eingeben zum Mitwirken.',
+                              style: TextStyle(
+                                  fontSize: 12, color: Colors.grey.shade700),
+                            ),
+                          ],
                         ),
-                        const SizedBox(height: 2),
-                        Text(
-                          auth.isCommunityUnlocked
-                              ? 'Du kannst Mängel und Ideen einreichen.'
-                              : 'Code eingeben, um Beiträge zu erstellen.',
-                          style: TextStyle(
-                              fontSize: 12, color: Colors.grey.shade700),
+                      ),
+                      ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 14, vertical: 8),
                         ),
-                      ],
-                    ),
+                        onPressed: () {
+                          if (auth.isRegisteredUser || auth.isCommunityUnlocked) {
+                            auth.lockCommunityAccess();
+                          } else {
+                            AuthDialog.show(context);
+                          }
+                        },
+                        child: Text(
+                          (auth.isRegisteredUser || auth.isCommunityUnlocked)
+                              ? 'Abmelden'
+                              : 'Anmelden',
+                        ),
+                      ),
+                    ],
                   ),
-                  ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  if (!auth.isRegisteredUser && auth.isCommunityUnlocked) ...[
+                    const Divider(height: 16),
+                    InkWell(
+                      onTap: () => AuthDialog.show(context),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 4.0),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(Icons.person_add,
+                                size: 16, color: Colors.blue.shade800),
+                            const SizedBox(width: 6),
+                            Text(
+                              'Persönliches Konto anlegen für dauerhaften Login',
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.blue.shade800,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
                     ),
-                    onPressed: () {
-                      if (auth.isCommunityUnlocked) {
-                        auth.lockCommunityAccess();
-                      } else {
-                        _showUnlockDialog(context);
-                      }
-                    },
-                    child: Text(auth.isCommunityUnlocked ? 'Sperren' : 'Freischalten'),
-                  ),
+                  ],
                 ],
               ),
             ),
