@@ -36,10 +36,30 @@ jobs:
           if [ "$ARCH" = "aarch64" ] || [ "$ARCH" = "arm64" ]; then
             echo "Setting up ARM64 Flutter gen_snapshot wrappers via QEMU..."
             apt-get update -qq && apt-get install -y -qq qemu-user-static binfmt-support libc6-amd64-cross libstdc++6-amd64-cross
+            
+            # Disable/unregister broken host FEX binfmt handlers if present
+            if [ -d /proc/sys/fs/binfmt_misc ]; then
+              for f in /proc/sys/fs/binfmt_misc/*; do
+                case "$(basename "$f")" in
+                  *FEX*|*fex*)
+                    echo "Unregistering broken binfmt handler: $f"
+                    echo -1 > "$f" 2>/dev/null || true
+                    ;;
+                esac
+              done
+            fi
             update-binfmts --enable qemu-x86_64 2>/dev/null || true
+
             mkdir -p /lib64
             ln -sf /usr/x86_64-linux-gnu/lib/ld-linux-x86-64.so.2 /lib64/ld-linux-x86-64.so.2
             QEMU_BIN=$(command -v qemu-x86_64-static || command -v qemu-x86_64)
+
+            # Replace FEXInterpreter with QEMU wrapper as fail-safe for AAPT2
+            for fex in /usr/bin/FEXInterpreter /usr/bin/FEX /usr/local/bin/FEXInterpreter; do
+              printf '#!/bin/sh\nexec %s -L /usr/x86_64-linux-gnu "$@"\n' "$QEMU_BIN" > "$fex"
+              chmod +x "$fex" 2>/dev/null || true
+            done
+
             flutter precache --android
             for dir in /sdks/flutter/bin/cache/artifacts/engine/android-*; do
               if [ -d "$dir/linux-x64" ]; then
