@@ -1,0 +1,23 @@
+version: '3.8'
+
+services:
+  gitea-runner:
+    image: gitea/act_runner:latest
+    container_name: gitea-runner
+    restart: always
+    environment:
+      # URL deiner Gitea-Instanz
+      - GITEA_INSTANCE_URL=${GITEA_INSTANCE_URL:-https://git.djnizz.at}
+      # Registrierungs-Token aus Gitea (Website-Verwaltung -> Aktionen -> Runner -> "Neuen Runner erstellen")
+      - GITEA_RUNNER_REGISTRATION_TOKEN=${GITEA_RUNNER_REGISTRATION_TOKEN}
+      # Name des Runners in Gitea
+      - GITEA_RUNNER_NAME=${GITEA_RUNNER_NAME:-oracle-arm-runner}
+      # TLS-Verifizierung überspringen (falls SSL abgelaufen/selbstsigniert ist)
+      - GITEA_RUNNER_INSECURE=true
+      # Maximale parallele Jobs
+      - GITEA_RUNNER_CAPACITY=2
+    volumes:
+      # Docker-Socket des Host-Systems (nötig für Container-Builds wie Flutter)
+      - /var/run/docker.sock:/var/run/docker.sock
+      # Persistenter Speicher: Registrierung bleibt nach Neustart erhalten
+      - ./data:/data
