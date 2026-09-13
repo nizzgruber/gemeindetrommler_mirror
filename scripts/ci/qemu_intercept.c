@@ -22,6 +22,23 @@ static int is_x86_64_elf(const char *path) {
     return machine == 62;
 }
 
+static char **clean_env(char *const envp[]) {
+    extern char **environ;
+    char *const *src = envp ? envp : environ;
+    int count = 0;
+    while (src && src[count]) count++;
+    char **new_env = (char **)malloc((count + 1) * sizeof(char *));
+    if (!new_env) return (char **)src;
+    int j = 0;
+    for (int i = 0; i < count; i++) {
+        if (strncmp(src[i], "LD_PRELOAD=", 11) != 0) {
+            new_env[j++] = src[i];
+        }
+    }
+    new_env[j] = NULL;
+    return new_env;
+}
+
 static char **build_qemu_argv(const char *pathname, char *const argv[]) {
     int argc = 0;
     while (argv && argv[argc]) argc++;
@@ -44,7 +61,8 @@ int execve(const char *pathname, char *const argv[], char *const envp[]) {
     if (pathname && is_x86_64_elf(pathname)) {
         char **new_argv = build_qemu_argv(pathname, argv);
         if (new_argv) {
-            return real_execve("/usr/bin/qemu-x86_64-static", new_argv, envp);
+            char **clean_envp = clean_env(envp);
+            return real_execve("/usr/bin/qemu-x86_64-static", new_argv, clean_envp);
         }
     }
     return real_execve(pathname, argv, envp);
@@ -57,9 +75,10 @@ int execv(const char *pathname, char *const argv[]) {
         char **new_argv = build_qemu_argv(pathname, argv);
         if (new_argv) {
             extern char **environ;
+            char **clean_envp = clean_env(environ);
             static int (*real_execve_local)(const char *, char *const [], char *const []) = NULL;
             if (!real_execve_local) real_execve_local = (int (*)(const char *, char *const [], char *const []))dlsym(RTLD_NEXT, "execve");
-            return real_execve_local("/usr/bin/qemu-x86_64-static", new_argv, environ);
+            return real_execve_local("/usr/bin/qemu-x86_64-static", new_argv, clean_envp);
         }
     }
     return real_execv(pathname, argv);
@@ -72,9 +91,10 @@ int execvp(const char *file, char *const argv[]) {
         char **new_argv = build_qemu_argv(file, argv);
         if (new_argv) {
             extern char **environ;
+            char **clean_envp = clean_env(environ);
             static int (*real_execve_local)(const char *, char *const [], char *const []) = NULL;
             if (!real_execve_local) real_execve_local = (int (*)(const char *, char *const [], char *const []))dlsym(RTLD_NEXT, "execve");
-            return real_execve_local("/usr/bin/qemu-x86_64-static", new_argv, environ);
+            return real_execve_local("/usr/bin/qemu-x86_64-static", new_argv, clean_envp);
         }
     }
     return real_execvp(file, argv);
@@ -86,9 +106,10 @@ int execvpe(const char *file, char *const argv[], char *const envp[]) {
     if (file && is_x86_64_elf(file)) {
         char **new_argv = build_qemu_argv(file, argv);
         if (new_argv) {
+            char **clean_envp = clean_env(envp);
             static int (*real_execve_local)(const char *, char *const [], char *const []) = NULL;
             if (!real_execve_local) real_execve_local = (int (*)(const char *, char *const [], char *const []))dlsym(RTLD_NEXT, "execve");
-            return real_execve_local("/usr/bin/qemu-x86_64-static", new_argv, envp);
+            return real_execve_local("/usr/bin/qemu-x86_64-static", new_argv, clean_envp);
         }
     }
     return real_execvpe(file, argv, envp);
@@ -107,7 +128,8 @@ int posix_spawn(pid_t *pid, const char *path,
     if (path && is_x86_64_elf(path)) {
         char **new_argv = build_qemu_argv(path, argv);
         if (new_argv) {
-            return real_posix_spawn(pid, "/usr/bin/qemu-x86_64-static", file_actions, attrp, new_argv, envp);
+            char **clean_envp = clean_env(envp);
+            return real_posix_spawn(pid, "/usr/bin/qemu-x86_64-static", file_actions, attrp, new_argv, clean_envp);
         }
     }
     return real_posix_spawn(pid, path, file_actions, attrp, argv, envp);
@@ -126,13 +148,14 @@ int posix_spawnp(pid_t *pid, const char *file,
     if (file && is_x86_64_elf(file)) {
         char **new_argv = build_qemu_argv(file, argv);
         if (new_argv) {
+            char **clean_envp = clean_env(envp);
             static int (*real_posix_spawn_local)(pid_t *, const char *, const posix_spawn_file_actions_t *,
                                                 const posix_spawnattr_t *, char *const [], char *const []) = NULL;
             if (!real_posix_spawn_local) {
                 real_posix_spawn_local = (int (*)(pid_t *, const char *, const posix_spawn_file_actions_t *,
                                                  const posix_spawnattr_t *, char *const [], char *const []))dlsym(RTLD_NEXT, "posix_spawn");
             }
-            return real_posix_spawn_local(pid, "/usr/bin/qemu-x86_64-static", file_actions, attrp, new_argv, envp);
+            return real_posix_spawn_local(pid, "/usr/bin/qemu-x86_64-static", file_actions, attrp, new_argv, clean_envp);
         }
     }
     return real_posix_spawnp(pid, file, file_actions, attrp, argv, envp);

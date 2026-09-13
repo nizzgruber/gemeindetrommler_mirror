@@ -73,10 +73,11 @@ jobs:
         run: |
           ARCH=$(uname -m)
           if [ "$ARCH" = "aarch64" ] || [ "$ARCH" = "arm64" ]; then
-            echo "Compiling and installing transparent QEMU execution interceptor..."
+            echo "Compiling transparent QEMU execution interceptor..."
             gcc -O2 -shared -fPIC -o /usr/local/lib/libqemu_intercept.so scripts/ci/qemu_intercept.c -ldl
-            echo "/usr/local/lib/libqemu_intercept.so" > /etc/ld.so.preload
-            echo "Installed transparent QEMU execution interceptor into /etc/ld.so.preload"
+            echo "LD_PRELOAD=/usr/local/lib/libqemu_intercept.so" >> "$GITHUB_ENV"
+            rm -f /etc/ld.so.preload
+            echo "Enabled LD_PRELOAD interceptor via GITHUB_ENV"
           fi
 
       - name: Make Gradlew Executable
@@ -100,61 +101,10 @@ jobs:
           flutter test
 
       - name: Build Universal Release APK
-        run: |
-          ARCH=$(uname -m)
-          if [ "$ARCH" = "aarch64" ] || [ "$ARCH" = "arm64" ]; then
-            (
-              while true; do
-                for aapt2_bin in $(find /root/.gradle /opt/android-sdk-linux -type f -name "aapt2" 2>/dev/null); do
-                  if [ -f "$aapt2_bin" ] && ! [ -f "${aapt2_bin}.orig" ]; then
-                    if head -c 4 "$aapt2_bin" 2>/dev/null | grep -q 'ELF'; then
-                      echo "Wrapping newly extracted AAPT2: $aapt2_bin"
-                      mv "$aapt2_bin" "${aapt2_bin}.orig"
-                      printf '#!/bin/sh\nexec /usr/bin/qemu-x86_64-static -L /usr/x86_64-linux-gnu "$0.orig" "$@"\n' > "$aapt2_bin"
-                      chmod +x "$aapt2_bin" "${aapt2_bin}.orig"
-                    fi
-                  fi
-                done
-                sleep 0.5
-              done
-            ) &
-            AAPT2_WATCHER_PID=$!
-            echo "AAPT2 Watcher started with PID $AAPT2_WATCHER_PID"
-          fi
-
-          flutter build apk --release
-
-          if [ -n "$AAPT2_WATCHER_PID" ]; then
-            kill "$AAPT2_WATCHER_PID" 2>/dev/null || true
-          fi
+        run: flutter build apk --release
 
       - name: Build Split-per-ABI Release APKs
-        run: |
-          ARCH=$(uname -m)
-          if [ "$ARCH" = "aarch64" ] || [ "$ARCH" = "arm64" ]; then
-            (
-              while true; do
-                for aapt2_bin in $(find /root/.gradle /opt/android-sdk-linux -type f -name "aapt2" 2>/dev/null); do
-                  if [ -f "$aapt2_bin" ] && ! [ -f "${aapt2_bin}.orig" ]; then
-                    if head -c 4 "$aapt2_bin" 2>/dev/null | grep -q 'ELF'; then
-                      echo "Wrapping newly extracted AAPT2: $aapt2_bin"
-                      mv "$aapt2_bin" "${aapt2_bin}.orig"
-                      printf '#!/bin/sh\nexec /usr/bin/qemu-x86_64-static -L /usr/x86_64-linux-gnu "$0.orig" "$@"\n' > "$aapt2_bin"
-                      chmod +x "$aapt2_bin" "${aapt2_bin}.orig"
-                    fi
-                  fi
-                done
-                sleep 0.5
-              done
-            ) &
-            AAPT2_WATCHER_PID=$!
-          fi
-
-          flutter build apk --release --split-per-abi
-
-          if [ -n "$AAPT2_WATCHER_PID" ]; then
-            kill "$AAPT2_WATCHER_PID" 2>/dev/null || true
-          fi
+        run: flutter build apk --release --split-per-abi
 
       - name: Organize Artifacts
         run: |
