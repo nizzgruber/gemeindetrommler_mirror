@@ -58,6 +58,21 @@ class _PostListScreenState extends State<PostListScreen> {
   }
 
   Future<void> _deletePost(PostItem item) async {
+    final auth = Provider.of<AuthService>(context, listen: false);
+    final currentUser = auth.user;
+    final isAuthor = currentUser != null && item.authorUid == currentUser.uid;
+    final canDelete = isAuthor || auth.isAdmin;
+
+    if (!canDelete) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Keine Berechtigung zum Löschen dieses Beitrags.'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
     try {
       for (final url in item.imageUrls) {
         await _storageService.deleteFileByUrl(url);
@@ -77,6 +92,18 @@ class _PostListScreenState extends State<PostListScreen> {
 
   Future<void> _onAddNewPressed() async {
     final auth = Provider.of<AuthService>(context, listen: false);
+
+    // News are official announcements and can only be created by Admins
+    if (widget.collectionName == 'News' && !auth.isAdmin) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content:
+              Text('Nur Administratoren können Neuigkeiten veröffentlichen.'),
+          backgroundColor: Colors.amber,
+        ),
+      );
+      return;
+    }
 
     if (!auth.isCommunityUnlocked && !auth.isAuthenticated) {
       await AuthDialog.show(context);
@@ -410,11 +437,15 @@ class _PostListScreenState extends State<PostListScreen> {
           );
         },
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _onAddNewPressed,
-        tooltip: 'Neuen Eintrag erstellen',
-        child: const Icon(Icons.add),
-      ),
+      floatingActionButton: (widget.collectionName == 'News' && !auth.isAdmin)
+          ? null
+          : FloatingActionButton(
+              onPressed: _onAddNewPressed,
+              tooltip: widget.collectionName == 'News'
+                  ? 'Nachricht verfassen'
+                  : 'Neuen Eintrag erstellen',
+              child: const Icon(Icons.add),
+            ),
     );
   }
 }

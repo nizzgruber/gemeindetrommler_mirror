@@ -47,3 +47,4 @@ app.*.map.json
 release-apks/
 gitea-runner/data/
 gitea-runner/.env
+backups/

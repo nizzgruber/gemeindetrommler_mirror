@@ -34,8 +34,10 @@ service cloud.firestore {
       // Jeder darf News, Mängel & Ideen öffentlich lesen
       allow read: if collection in ['News', 'Issues', 'CitizensForum'];
       
-      // Erstellen darf jeder freigeschaltete/angemeldete Nutzer
-      allow create: if isAuthenticated() && collection in ['News', 'Issues', 'CitizensForum'];
+      // Erstellen: News nur Admin; Mängel und Ideen für angemeldete Nutzer
+      allow create: if collection == 'News'
+        ? isAdmin()
+        : (isAuthenticated() && collection in ['Issues', 'CitizensForum']);
       
       // Ändern/Löschen nur der eigene Autor oder Admin
       allow update, delete: if isAuthorOrAdmin() && collection in ['News', 'Issues', 'CitizensForum'];
