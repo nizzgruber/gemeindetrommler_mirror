@@ -136,7 +136,7 @@ jobs:
           ls -lah release-apks/
 
       - name: Upload APKs to Gitea Artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v3
         with:
           name: oggauer-gemeindetrommler-apks
           path: release-apks/*.apk
