@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../models/post_item.dart';
 import '../services/pdf_service.dart';
+import 'pdf_viewer_screen.dart';
 
 class DetailScreen extends StatelessWidget {
   final PostItem item;
@@ -123,6 +124,41 @@ class DetailScreen extends StatelessWidget {
               item.description,
               style: const TextStyle(fontSize: 15, height: 1.5),
             ),
+            if (item.pdfUrl != null && item.pdfUrl!.isNotEmpty) ...[
+              const SizedBox(height: 16),
+              Card(
+                color: Colors.red.shade50,
+                elevation: 0,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  side: BorderSide(color: Colors.red.shade200),
+                ),
+                child: ListTile(
+                  leading: const CircleAvatar(
+                    backgroundColor: Colors.red,
+                    child: Icon(Icons.picture_as_pdf, color: Colors.white),
+                  ),
+                  title: const Text(
+                    'PDF-Aussendung ansehen',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                  subtitle:
+                      const Text('Dokument jetzt in der App öffnen und lesen'),
+                  trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (ctx) => PdfViewerScreen(
+                          title: item.title,
+                          pdfUrl: item.pdfUrl!,
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ],
             const SizedBox(height: 24),
             // Additional images gallery if there are multiple images
             if (item.imageUrls.length > 1) ...[
