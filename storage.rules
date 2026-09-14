@@ -12,8 +12,11 @@ service firebase.storage {
         && request.resource.size < 10 * 1024 * 1024
         && request.resource.contentType.matches('image/.*');
         
-      // Nur der Verfasser (oder berechtigte Nutzer) darf sein Foto löschen
-      allow delete: if request.auth != null && request.auth.uid == userId;
+      // Nur der Verfasser oder ein Admin darf sein Foto löschen
+      allow delete: if request.auth != null && (
+        request.auth.uid == userId ||
+        request.auth.token.admin == true
+      );
     }
   }
 }

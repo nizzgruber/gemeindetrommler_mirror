@@ -1,5 +1,4 @@
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
@@ -111,7 +110,8 @@ class _PostListScreenState extends State<PostListScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final currentUser = FirebaseAuth.instance.currentUser;
+    final auth = Provider.of<AuthService>(context);
+    final currentUser = auth.user;
 
     return Scaffold(
       appBar: AppBar(
@@ -240,6 +240,7 @@ class _PostListScreenState extends State<PostListScreen> {
               final isSelected = _selectedItems.containsKey(item.id);
               final isAuthor =
                   currentUser != null && item.authorUid == currentUser.uid;
+              final canDelete = isAuthor || auth.isAdmin;
               final formattedDate =
                   DateFormat('dd.MM.yyyy').format(item.createdDate);
 
@@ -367,7 +368,7 @@ class _PostListScreenState extends State<PostListScreen> {
                 ),
               );
 
-              if (isAuthor) {
+              if (canDelete) {
                 return Dismissible(
                   key: Key(item.id),
                   direction: DismissDirection.endToStart,

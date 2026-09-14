@@ -20,6 +20,8 @@ class AuthService extends ChangeNotifier {
 
   String? _cachedFirstName;
   String? _cachedLastName;
+  bool _isAdmin = false;
+  bool get isAdmin => _isAdmin;
 
   String get firstName {
     if (_cachedFirstName != null && _cachedFirstName!.isNotEmpty) {
@@ -45,14 +47,28 @@ class AuthService extends ChangeNotifier {
     _initAuth();
   }
 
+  Future<void> _checkAdminClaim(User? user) async {
+    if (user != null && !user.isAnonymous) {
+      try {
+        final tokenResult = await user.getIdTokenResult();
+        _isAdmin = tokenResult.claims?['admin'] == true;
+      } catch (_) {
+        _isAdmin = false;
+      }
+    } else {
+      _isAdmin = false;
+    }
+  }
+
   Future<void> _initAuth() async {
     final prefs = await SharedPreferences.getInstance();
     _isCommunityUnlocked = prefs.getBool(_prefKeyUnlocked) ?? false;
     _cachedFirstName = prefs.getString('user_first_name');
     _cachedLastName = prefs.getString('user_last_name');
 
-    _auth.authStateChanges().listen((User? user) {
+    _auth.authStateChanges().listen((User? user) async {
       _user = user;
+      await _checkAdminClaim(user);
       notifyListeners();
     });
 
@@ -152,10 +168,11 @@ class AuthService extends ChangeNotifier {
   /// Check if user's email is verified
   bool get isEmailVerified => _user?.emailVerified ?? false;
 
-  /// Reload current user from Firebase to refresh emailVerified status
+  /// Reload current user from Firebase to refresh emailVerified status and admin claim
   Future<void> reloadUser() async {
     await _user?.reload();
     _user = _auth.currentUser;
+    await _checkAdminClaim(_user);
     notifyListeners();
   }
 
@@ -209,6 +226,7 @@ class AuthService extends ChangeNotifier {
       await prefs.remove('user_last_name');
       _cachedFirstName = null;
       _cachedLastName = null;
+      _isAdmin = false;
       await _auth.signOut();
     } catch (e) {
       if (kDebugMode) {

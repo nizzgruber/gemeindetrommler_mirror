@@ -1,35 +1,42 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    
-    // News / Neuigkeiten: Öffentlich lesbar, Schreiben für angemeldete Nutzer
-    match /News/{document=**} {
-      allow read: if true;
-      allow write: if request.auth != null;
+
+    // Hilfsfunktionen
+    function isAuthenticated() {
+      return request.auth != null;
     }
-    
-    // Mängel & Anliegen: Öffentlich lesbar, Erstellen angemeldet, Löschen nur eigener Autor
-    match /Issues/{document} {
-      allow read: if true;
-      allow create: if request.auth != null;
-      allow update: if request.auth != null;
-      allow delete: if request.auth != null && 
-        (resource.data.author_uid == request.auth.uid);
+
+    function isAdmin() {
+      return request.auth != null && request.auth.token.admin == true;
     }
-    
-    // Bürgerforum / Ideen: Öffentlich lesbar, Erstellen angemeldet, Löschen eigener Autor
-    match /CitizensForum/{document} {
-      allow read: if true;
-      allow create: if request.auth != null;
-      allow update: if request.auth != null;
-      allow delete: if request.auth != null && 
-        (resource.data.author_uid == request.auth.uid);
+
+    function isAuthorOrAdmin() {
+      return isAuthenticated() && (
+        (resource.data.author_uid != null && resource.data.author_uid == request.auth.uid) ||
+        (resource.data.authorUid != null && resource.data.authorUid == request.auth.uid) ||
+        isAdmin()
+      );
     }
-    
-    // Kontakt-Nachrichten: Nur registrierte Nutzer können einsenden, Lesen für berechtigte Nutzer
+
+    // Öffentliche Sammlungen: News, Mängel (Issues) & Ideen (CitizensForum)
+    match /{collection}/{document=**} {
+      // Jeder darf News, Mängel & Ideen öffentlich lesen
+      allow read: if collection in ['News', 'Issues', 'CitizensForum'];
+      
+      // Erstellen darf jeder freigeschaltete/angemeldete Nutzer
+      allow create: if isAuthenticated() && collection in ['News', 'Issues', 'CitizensForum'];
+      
+      // Ändern/Löschen nur der eigene Autor oder Admin
+      allow update, delete: if isAuthorOrAdmin() && collection in ['News', 'Issues', 'CitizensForum'];
+    }
+
+    // Kontakt-Nachrichten: Geschützt (nur registrierte Nutzer senden, Lesen nur Admin & Autor)
     match /ContactMessages/{document} {
-      allow create: if request.auth != null && request.auth.token.firebase.sign_in_provider != 'anonymous';
-      allow read, update, delete: if request.auth != null;
+      // Senden nur für registrierte Nutzer (nicht-anonym)
+      allow create: if isAuthenticated() && request.auth.token.firebase.sign_in_provider != 'anonymous';
+      // Lesen, Ändern und Löschen für Admin und Autor
+      allow read, update, delete: if isAuthorOrAdmin();
     }
   }
 }
