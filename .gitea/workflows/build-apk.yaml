@@ -18,6 +18,8 @@ jobs:
   build-android:
     name: Build Release APKs
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     container:
       image: ghcr.io/cirruslabs/flutter:3.19.3
       options: --privileged
@@ -100,14 +102,7 @@ jobs:
           flutter analyze
           flutter test
 
-      - name: Build Universal Release APK
-        run: |
-          flutter build apk --release || {
-            echo "Checking if APK was built despite path mismatch..."
-            find build android -type f -name "*release*.apk" 2>/dev/null
-          }
-
-      - name: Build Split-per-ABI Release APKs
+      - name: Build Split-per-ABI Release APKs (3 APKs)
         run: |
           flutter build apk --release --split-per-abi || {
             echo "Checking if split APKs were built despite path mismatch..."
@@ -117,13 +112,6 @@ jobs:
       - name: Organize Artifacts
         run: |
           mkdir -p release-apks
-          # Copy universal APK
-          if [ -f build/app/outputs/flutter-apk/app-release.apk ]; then
-            cp build/app/outputs/flutter-apk/app-release.apk release-apks/oggauer-gemeindetrommler-universal-release.apk
-          elif [ -f android/app/build/outputs/apk/release/app-release.apk ]; then
-            cp android/app/build/outputs/apk/release/app-release.apk release-apks/oggauer-gemeindetrommler-universal-release.apk
-          fi
-          # Copy split APKs
           for apk in build/app/outputs/flutter-apk/*.apk android/app/build/outputs/apk/release/*.apk; do
             [ -f "$apk" ] || continue
             case "$(basename "$apk")" in
@@ -132,12 +120,36 @@ jobs:
               *x86_64*) cp "$apk" release-apks/oggauer-gemeindetrommler-x86_64.apk ;;
             esac
           done
-          echo "=== Generated APK Artifacts ==="
+          echo "=== Generated 3 Split APK Artifacts ==="
           ls -lah release-apks/
 
-      - name: Upload APKs to Gitea Artifacts
+      - name: Upload ARM64 APK
         uses: actions/upload-artifact@v3
         with:
-          name: oggauer-gemeindetrommler-apks
-          path: release-apks/*.apk
+          name: oggauer-gemeindetrommler-arm64-v8a
+          path: release-apks/oggauer-gemeindetrommler-arm64-v8a.apk
           retention-days: 30
+
+      - name: Upload ARMv7 APK
+        uses: actions/upload-artifact@v3
+        with:
+          name: oggauer-gemeindetrommler-armeabi-v7a
+          path: release-apks/oggauer-gemeindetrommler-armeabi-v7a.apk
+          retention-days: 30
+
+      - name: Upload x86_64 APK
+        uses: actions/upload-artifact@v3
+        with:
+          name: oggauer-gemeindetrommler-x86_64
+          path: release-apks/oggauer-gemeindetrommler-x86_64.apk
+          retention-days: 30
+
+      - name: Publish Direct APKs to Gitea Releases
+        continue-on-error: true
+        env:
+          GITEA_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITEA_API: ${{ github.api_url }}
+          REPO: ${{ github.repository }}
+          RELEASE_TAG: latest
+        run: |
+          node scripts/ci/publish_release.js
