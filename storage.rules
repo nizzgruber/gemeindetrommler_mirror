@@ -12,8 +12,13 @@ service firebase.storage {
         && request.resource.size < 10 * 1024 * 1024
         && request.resource.contentType.matches('image/.*');
         
-      // Fotos löschen beim Entfernen eines Beitrags (durch Verfasser oder Admin)
-      allow delete: if request.auth != null;
+      // Löschen streng gesichert: Nur der eigene Verfasser ODER ein Admin aus der Admins-Sammlung
+      allow delete: if request.auth != null && (
+        request.auth.uid == userId ||
+        request.auth.token.admin == true ||
+        firestore.exists(/databases/(default)/documents/Admins/$(request.auth.uid)) ||
+        (request.auth.token.email != null && firestore.exists(/databases/(default)/documents/Admins/$(request.auth.token.email)))
+      );
     }
   }
 }
