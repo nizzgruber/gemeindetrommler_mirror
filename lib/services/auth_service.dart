@@ -136,6 +136,13 @@ class AuthService extends ChangeNotifier {
     }
   }
 
+  /// Sign in with Google (UI stub / preparation)
+  Future<String?> signInWithGoogle() async {
+    // Note: Once SHA-1 fingerprint is registered in Firebase Console,
+    // the full interactive Google OAuth sign-in flow can be activated.
+    return 'Google Sign-In ist in Vorbereitung. Bitte nutze derzeit die E-Mail-Anmeldung oder den Bürger-Code.';
+  }
+
   /// Send password reset email
   Future<String?> sendPasswordReset(String email) async {
     try {

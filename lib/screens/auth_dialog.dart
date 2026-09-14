@@ -145,6 +145,31 @@ class _AuthDialogState extends State<AuthDialog>
     }
   }
 
+  Future<void> _handleGoogleSignIn() async {
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+
+    final auth = Provider.of<AuthService>(context, listen: false);
+    final error = await auth.signInWithGoogle();
+
+    if (!mounted) return;
+    setState(() => _isLoading = false);
+
+    if (error == null) {
+      Navigator.pop(context);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Erfolgreich mit Google angemeldet!'),
+          backgroundColor: Colors.green,
+        ),
+      );
+    } else {
+      setState(() => _errorMessage = error);
+    }
+  }
+
   Future<void> _handleCodeUnlock() async {
     final code = _codeController.text.trim();
     if (code.isEmpty) {
@@ -388,6 +413,26 @@ class _AuthDialogState extends State<AuthDialog>
                                 : const Text('Anmelden',
                                     style: TextStyle(fontSize: 15)),
                           ),
+                          const SizedBox(height: 14),
+                          Row(
+                            children: [
+                              Expanded(child: Divider(color: Colors.grey.shade300)),
+                              Padding(
+                                padding: const EdgeInsets.symmetric(horizontal: 10),
+                                child: Text(
+                                  'ODER',
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    color: Colors.grey.shade500,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+                              Expanded(child: Divider(color: Colors.grey.shade300)),
+                            ],
+                          ),
+                          const SizedBox(height: 14),
+                          _buildGoogleButton(label: 'Mit Google anmelden'),
                         ],
                       ),
                     ),
@@ -481,6 +526,26 @@ class _AuthDialogState extends State<AuthDialog>
                                     'Konto erstellen & E-Mail bestätigen',
                                     style: TextStyle(fontSize: 14)),
                           ),
+                          const SizedBox(height: 14),
+                          Row(
+                            children: [
+                              Expanded(child: Divider(color: Colors.grey.shade300)),
+                              Padding(
+                                padding: const EdgeInsets.symmetric(horizontal: 10),
+                                child: Text(
+                                  'ODER',
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    color: Colors.grey.shade500,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+                              Expanded(child: Divider(color: Colors.grey.shade300)),
+                            ],
+                          ),
+                          const SizedBox(height: 14),
+                          _buildGoogleButton(label: 'Mit Google registrieren'),
                         ],
                       ),
                     ),
@@ -538,6 +603,54 @@ class _AuthDialogState extends State<AuthDialog>
               ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildGoogleButton({required String label}) {
+    return OutlinedButton(
+      onPressed: _isLoading ? null : _handleGoogleSignIn,
+      style: OutlinedButton.styleFrom(
+        padding: const EdgeInsets.symmetric(vertical: 11, horizontal: 16),
+        side: BorderSide(color: Colors.grey.shade300),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+        backgroundColor: Colors.white,
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          _buildGoogleIcon(),
+          const SizedBox(width: 12),
+          Text(
+            label,
+            style: const TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+              color: Colors.black87,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildGoogleIcon() {
+    return Container(
+      width: 22,
+      height: 22,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        shape: BoxShape.circle,
+        border: Border.all(color: Colors.grey.shade200),
+      ),
+      alignment: Alignment.center,
+      child: const Text(
+        'G',
+        style: TextStyle(
+          fontSize: 14,
+          fontWeight: FontWeight.bold,
+          color: Color(0xFF4285F4),
         ),
       ),
     );
