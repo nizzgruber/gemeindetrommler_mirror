@@ -10,7 +10,8 @@ service cloud.firestore {
     function isAdmin() {
       return request.auth != null && (
         request.auth.token.admin == true ||
-        request.auth.token.email == 'nicolas@gruber.info'
+        exists(/databases/$(database)/documents/Admins/$(request.auth.uid)) ||
+        (request.auth.token.email != null && exists(/databases/$(database)/documents/Admins/$(request.auth.token.email)))
       );
     }
 
@@ -20,6 +21,12 @@ service cloud.firestore {
         (resource.data.authorUid != null && resource.data.authorUid == request.auth.uid) ||
         isAdmin()
       );
+    }
+
+    // Admins-Sammlung: Angemeldete Nutzer können prüfen, nur Admins schreiben
+    match /Admins/{adminDoc} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
     }
 
     // Öffentliche Sammlungen: News, Mängel (Issues) & Ideen (CitizensForum)

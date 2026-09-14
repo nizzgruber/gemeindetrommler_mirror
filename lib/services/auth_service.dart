@@ -1,5 +1,6 @@
-import 'package:flutter/foundation.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class AuthService extends ChangeNotifier {
@@ -47,21 +48,64 @@ class AuthService extends ChangeNotifier {
     _initAuth();
   }
 
-  static const List<String> adminEmails = [
-    'nicolas@gruber.info',
-  ];
-
   Future<void> _checkAdminClaim(User? user) async {
     if (user != null && !user.isAnonymous) {
-      final email = user.email?.trim().toLowerCase();
-      if (email != null && adminEmails.contains(email)) {
-        _isAdmin = true;
-        return;
-      }
       try {
+        // 1. Custom claims check (token.admin == true)
         final tokenResult = await user.getIdTokenResult();
-        _isAdmin = tokenResult.claims?['admin'] == true;
-      } catch (_) {
+        if (tokenResult.claims?['admin'] == true) {
+          _isAdmin = true;
+          return;
+        }
+
+        final firestore = FirebaseFirestore.instance;
+
+        // 2. Check Firestore 'Admins' collection by user UID (doc id)
+        final docByUid =
+            await firestore.collection('Admins').doc(user.uid).get();
+        if (docByUid.exists) {
+          _isAdmin = true;
+          return;
+        }
+
+        // 3. Check Firestore 'Admins' collection by email (doc id)
+        final userEmail = user.email?.trim().toLowerCase();
+        if (userEmail != null && userEmail.isNotEmpty) {
+          final docByEmail =
+              await firestore.collection('Admins').doc(userEmail).get();
+          if (docByEmail.exists) {
+            _isAdmin = true;
+            return;
+          }
+
+          // 4. Check Firestore 'Admins' collection where email field == userEmail
+          final queryByEmail = await firestore
+              .collection('Admins')
+              .where('email', isEqualTo: userEmail)
+              .limit(1)
+              .get();
+          if (queryByEmail.docs.isNotEmpty) {
+            _isAdmin = true;
+            return;
+          }
+        }
+
+        // 5. Check Firestore 'Admins' collection where uid field == user.uid
+        final queryByUid = await firestore
+            .collection('Admins')
+            .where('uid', isEqualTo: user.uid)
+            .limit(1)
+            .get();
+        if (queryByUid.docs.isNotEmpty) {
+          _isAdmin = true;
+          return;
+        }
+
+        _isAdmin = false;
+      } catch (e) {
+        if (kDebugMode) {
+          debugPrint('Error checking admin status: $e');
+        }
         _isAdmin = false;
       }
     } else {
