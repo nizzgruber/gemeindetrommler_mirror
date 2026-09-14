@@ -75,7 +75,11 @@ class _PostListScreenState extends State<PostListScreen> {
 
     try {
       for (final url in item.imageUrls) {
-        await _storageService.deleteFileByUrl(url);
+        try {
+          await _storageService.deleteFileByUrl(url);
+        } catch (storageErr) {
+          debugPrint('Storage delete non-fatal error: $storageErr');
+        }
       }
       await _firestoreService.deletePost(widget.collectionName, item.id);
       if (!mounted) return;
