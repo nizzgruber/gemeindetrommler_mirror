@@ -50,6 +50,7 @@ class FirestoreService {
     required String email,
     String? phone,
     required String message,
+    String? authorUid,
   }) async {
     await _firestore.collection('ContactMessages').add({
       'firstName': firstName,
@@ -57,6 +58,7 @@ class FirestoreService {
       'email': email,
       'phone': phone ?? '',
       'message': message,
+      'author_uid': authorUid ?? '',
       'createdDate': Timestamp.now(),
       'status': 'Neu',
     });

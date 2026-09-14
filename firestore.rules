@@ -26,9 +26,9 @@ service cloud.firestore {
         (resource.data.author_uid == request.auth.uid);
     }
     
-    // Kontakt-Nachrichten: Jeder kann einsenden, Lesen nur berechtigte Nutzer
+    // Kontakt-Nachrichten: Nur registrierte Nutzer können einsenden, Lesen für berechtigte Nutzer
     match /ContactMessages/{document} {
-      allow create: if true;
+      allow create: if request.auth != null && request.auth.token.firebase.sign_in_provider != 'anonymous';
       allow read, update, delete: if request.auth != null;
     }
   }

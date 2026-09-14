@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../services/auth_service.dart';
 import '../services/firestore_service.dart';
+import 'auth_dialog.dart';
 
 class ContactScreen extends StatefulWidget {
   const ContactScreen({super.key});
@@ -29,11 +32,12 @@ class _ContactScreenState extends State<ContactScreen> {
     super.dispose();
   }
 
-  bool _isValidEmail(String email) {
-    return RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(email);
-  }
+  Future<void> _submitForm(AuthService auth) async {
+    if (!auth.isRegisteredUser) {
+      await AuthDialog.show(context);
+      return;
+    }
 
-  Future<void> _submitForm() async {
     if (!_formKey.currentState!.validate() || _isSubmitting) return;
 
     setState(() {
@@ -41,19 +45,27 @@ class _ContactScreenState extends State<ContactScreen> {
     });
 
     try {
+      final firstName = auth.firstName.isNotEmpty
+          ? auth.firstName
+          : _firstNameController.text.trim();
+      final lastName = auth.lastName.isNotEmpty
+          ? auth.lastName
+          : _lastNameController.text.trim();
+      final email = (auth.email != null && auth.email!.isNotEmpty)
+          ? auth.email!
+          : _emailController.text.trim();
+
       await _firestoreService.submitContactMessage(
-        firstName: _firstNameController.text.trim(),
-        lastName: _lastNameController.text.trim(),
-        email: _emailController.text.trim(),
+        firstName: firstName,
+        lastName: lastName,
+        email: email,
         phone: _phoneController.text.trim(),
         message: _messageController.text.trim(),
+        authorUid: auth.user?.uid,
       );
 
       if (!mounted) return;
 
-      _firstNameController.clear();
-      _lastNameController.clear();
-      _emailController.clear();
       _phoneController.clear();
       _messageController.clear();
 
@@ -82,6 +94,26 @@ class _ContactScreenState extends State<ContactScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final auth = Provider.of<AuthService>(context);
+    final isRegistered = auth.isRegisteredUser;
+
+    // Sync controllers with authenticated user details
+    if (isRegistered) {
+      if (_firstNameController.text != auth.firstName) {
+        _firstNameController.text = auth.firstName;
+      }
+      if (_lastNameController.text != auth.lastName) {
+        _lastNameController.text = auth.lastName;
+      }
+      if (_emailController.text != (auth.email ?? '')) {
+        _emailController.text = auth.email ?? '';
+      }
+    } else {
+      if (_firstNameController.text.isNotEmpty) _firstNameController.clear();
+      if (_lastNameController.text.isNotEmpty) _lastNameController.clear();
+      if (_emailController.text.isNotEmpty) _emailController.clear();
+    }
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Kontakt Bürgerforum'),
@@ -94,54 +126,154 @@ class _ContactScreenState extends State<ContactScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Card(
-                color: Colors.blue.shade50,
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12)),
-                child: const Padding(
-                  padding: EdgeInsets.all(14.0),
-                  child: Row(
-                    children: [
-                      Icon(Icons.mail_outline, color: Colors.blue, size: 28),
-                      SizedBox(width: 12),
-                      Expanded(
-                        child: Text(
-                          'Hier kannst du direkt mit dem Bürgerforum Oggau in Kontakt treten. Wir freuen uns über deine Anregungen und Fragen!',
-                          style: TextStyle(fontSize: 13),
+              if (!isRegistered) ...[
+                Card(
+                  color: Colors.amber.shade50,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    side: BorderSide(color: Colors.amber.shade300),
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.all(14.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Icon(Icons.lock_outline,
+                                color: Colors.amber.shade900, size: 22),
+                            const SizedBox(width: 8),
+                            Text(
+                              'Anmeldung erforderlich',
+                              style: TextStyle(
+                                fontSize: 15,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.amber.shade900,
+                              ),
+                            ),
+                          ],
                         ),
-                      ),
-                    ],
+                        const SizedBox(height: 6),
+                        Text(
+                          'Um eine Nachricht an das Bürgerforum zu senden, ist ein registriertes Benutzerkonto erforderlich. Deine Kontaktdaten werden dann automatisch hinterlegt.',
+                          style: TextStyle(
+                              fontSize: 13, color: Colors.grey.shade800),
+                        ),
+                        const SizedBox(height: 12),
+                        SizedBox(
+                          width: double.infinity,
+                          child: ElevatedButton.icon(
+                            onPressed: () => AuthDialog.show(context),
+                            icon: const Icon(Icons.login),
+                            label: const Text('Jetzt anmelden oder registrieren'),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.blue.shade700,
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(vertical: 11),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
-              ),
-              const SizedBox(height: 16),
+                const SizedBox(height: 16),
+              ] else ...[
+                Card(
+                  color: Colors.blue.shade50,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    side: BorderSide(color: Colors.blue.shade100),
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.all(12.0),
+                    child: Row(
+                      children: [
+                        Icon(Icons.verified_user_outlined,
+                            color: Colors.blue.shade700, size: 24),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Angemeldet als ${auth.displayName ?? auth.email}',
+                                style: const TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.black87,
+                                ),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                'Deine Kontaktdaten sind automatisch hinterlegt.',
+                                style: TextStyle(
+                                    fontSize: 12, color: Colors.grey.shade700),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+              ],
               Row(
                 children: [
                   Expanded(
                     child: TextFormField(
                       controller: _firstNameController,
-                      decoration: const InputDecoration(
-                        labelText: 'Vorname *',
-                        border: OutlineInputBorder(),
+                      readOnly: true,
+                      style: TextStyle(
+                        color: isRegistered
+                            ? Colors.black87
+                            : Colors.grey.shade600,
+                        fontWeight: isRegistered
+                            ? FontWeight.w500
+                            : FontWeight.normal,
                       ),
-                      validator: (value) =>
-                          (value == null || value.trim().isEmpty)
-                              ? 'Bitte Vorname eingeben'
-                              : null,
+                      decoration: InputDecoration(
+                        labelText: 'Vorname *',
+                        hintText:
+                            isRegistered ? null : 'Wird automatisch ausgefüllt',
+                        filled: true,
+                        fillColor: Colors.grey.shade100,
+                        prefixIcon: const Icon(Icons.person_outline),
+                        suffixIcon: isRegistered
+                            ? const Icon(Icons.lock_outline,
+                                size: 18, color: Colors.grey)
+                            : null,
+                        border: const OutlineInputBorder(),
+                      ),
                     ),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
                     child: TextFormField(
                       controller: _lastNameController,
-                      decoration: const InputDecoration(
-                        labelText: 'Nachname *',
-                        border: OutlineInputBorder(),
+                      readOnly: true,
+                      style: TextStyle(
+                        color: isRegistered
+                            ? Colors.black87
+                            : Colors.grey.shade600,
+                        fontWeight: isRegistered
+                            ? FontWeight.w500
+                            : FontWeight.normal,
                       ),
-                      validator: (value) =>
-                          (value == null || value.trim().isEmpty)
-                              ? 'Bitte Nachname eingeben'
-                              : null,
+                      decoration: InputDecoration(
+                        labelText: 'Nachname *',
+                        hintText:
+                            isRegistered ? null : 'Wird automatisch ausgefüllt',
+                        filled: true,
+                        fillColor: Colors.grey.shade100,
+                        prefixIcon: const Icon(Icons.person_outline),
+                        suffixIcon: isRegistered
+                            ? const Icon(Icons.lock_outline,
+                                size: 18, color: Colors.grey)
+                            : null,
+                        border: const OutlineInputBorder(),
+                      ),
                     ),
                   ),
                 ],
@@ -149,43 +281,60 @@ class _ContactScreenState extends State<ContactScreen> {
               const SizedBox(height: 12),
               TextFormField(
                 controller: _emailController,
-                keyboardType: TextInputType.emailAddress,
-                decoration: const InputDecoration(
-                  labelText: 'E-Mail-Adresse *',
-                  border: OutlineInputBorder(),
+                readOnly: true,
+                style: TextStyle(
+                  color: isRegistered ? Colors.black87 : Colors.grey.shade600,
+                  fontWeight:
+                      isRegistered ? FontWeight.w500 : FontWeight.normal,
                 ),
-                validator: (value) {
-                  if (value == null || value.trim().isEmpty) {
-                    return 'Bitte E-Mail-Adresse eingeben';
-                  }
-                  if (!_isValidEmail(value.trim())) {
-                    return 'Bitte eine gültige E-Mail eingeben';
-                  }
-                  return null;
-                },
+                decoration: InputDecoration(
+                  labelText: 'E-Mail-Adresse *',
+                  hintText:
+                      isRegistered ? null : 'Wird durch Anmeldung ausgefüllt',
+                  filled: true,
+                  fillColor: Colors.grey.shade100,
+                  prefixIcon: const Icon(Icons.email_outlined),
+                  suffixIcon: isRegistered
+                      ? const Icon(Icons.lock_outline,
+                          size: 18, color: Colors.grey)
+                      : null,
+                  helperText: isRegistered
+                      ? 'Antworten des Bürgerforums gehen an diese E-Mail'
+                      : null,
+                  border: const OutlineInputBorder(),
+                ),
               ),
               const SizedBox(height: 12),
               TextFormField(
                 controller: _phoneController,
                 keyboardType: TextInputType.phone,
-                decoration: const InputDecoration(
+                enabled: isRegistered,
+                decoration: InputDecoration(
                   labelText: 'Rückrufnummer (optional)',
-                  border: OutlineInputBorder(),
+                  prefixIcon: const Icon(Icons.phone_outlined),
+                  border: const OutlineInputBorder(),
+                  helperText: isRegistered
+                      ? 'Optional für eventuelle telefonische Rückfragen'
+                      : null,
+                  filled: !isRegistered,
+                  fillColor: !isRegistered ? Colors.grey.shade100 : null,
                 ),
               ),
               const SizedBox(height: 12),
               TextFormField(
                 controller: _messageController,
                 maxLines: 5,
-                decoration: const InputDecoration(
+                enabled: isRegistered,
+                decoration: InputDecoration(
                   labelText: 'Ihr Anliegen / Ihre Nachricht *',
                   alignLabelWithHint: true,
-                  border: OutlineInputBorder(),
+                  border: const OutlineInputBorder(),
+                  filled: !isRegistered,
+                  fillColor: !isRegistered ? Colors.grey.shade100 : null,
                 ),
-                validator: (value) =>
-                    (value == null || value.trim().isEmpty)
-                        ? 'Bitte Ihre Nachricht eingeben'
-                        : null,
+                validator: (value) => (value == null || value.trim().isEmpty)
+                    ? 'Bitte Ihre Nachricht eingeben'
+                    : null,
               ),
               const SizedBox(height: 12),
               Text(
@@ -201,16 +350,29 @@ class _ContactScreenState extends State<ContactScreen> {
                 width: double.infinity,
                 height: 48,
                 child: ElevatedButton.icon(
-                  onPressed: _isSubmitting ? null : _submitForm,
+                  onPressed: !isRegistered
+                      ? () => AuthDialog.show(context)
+                      : (_isSubmitting ? null : () => _submitForm(auth)),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: isRegistered
+                        ? Colors.blue.shade800
+                        : Colors.grey.shade700,
+                    foregroundColor: Colors.white,
+                  ),
                   icon: _isSubmitting
                       ? const SizedBox(
                           width: 20,
                           height: 20,
-                          child: CircularProgressIndicator(strokeWidth: 2),
+                          child: CircularProgressIndicator(
+                              strokeWidth: 2, color: Colors.white),
                         )
-                      : const Icon(Icons.send),
+                      : Icon(!isRegistered ? Icons.login : Icons.send),
                   label: Text(
-                    _isSubmitting ? 'Wird gesendet...' : 'Nachricht absenden',
+                    !isRegistered
+                        ? 'Anmelden zum Absenden'
+                        : (_isSubmitting
+                            ? 'Wird gesendet...'
+                            : 'Nachricht absenden'),
                     style: const TextStyle(fontSize: 16),
                   ),
                 ),

@@ -25,7 +25,8 @@ class _AuthDialogState extends State<AuthDialog>
   final _loginPasswordController = TextEditingController();
 
   // Register Controllers
-  final _regNameController = TextEditingController();
+  final _regFirstNameController = TextEditingController();
+  final _regLastNameController = TextEditingController();
   final _regEmailController = TextEditingController();
   final _regPasswordController = TextEditingController();
   final _regConfirmPasswordController = TextEditingController();
@@ -51,7 +52,8 @@ class _AuthDialogState extends State<AuthDialog>
     _tabController.dispose();
     _loginEmailController.dispose();
     _loginPasswordController.dispose();
-    _regNameController.dispose();
+    _regFirstNameController.dispose();
+    _regLastNameController.dispose();
     _regEmailController.dispose();
     _regPasswordController.dispose();
     _regConfirmPasswordController.dispose();
@@ -93,13 +95,14 @@ class _AuthDialogState extends State<AuthDialog>
   }
 
   Future<void> _handleRegister() async {
-    final name = _regNameController.text.trim();
+    final firstName = _regFirstNameController.text.trim();
+    final lastName = _regLastNameController.text.trim();
     final email = _regEmailController.text.trim();
     final password = _regPasswordController.text;
     final confirm = _regConfirmPasswordController.text;
 
-    if (name.isEmpty || email.isEmpty || password.isEmpty) {
-      setState(() => _errorMessage = 'Bitte alle Pflichtfelder ausfüllen.');
+    if (firstName.isEmpty || lastName.isEmpty || email.isEmpty || password.isEmpty) {
+      setState(() => _errorMessage = 'Bitte alle Pflichtfelder ausfüllen (Vorname, Nachname, E-Mail, Passwort).');
       return;
     }
 
@@ -123,7 +126,8 @@ class _AuthDialogState extends State<AuthDialog>
     final error = await auth.signUpWithEmail(
       email: email,
       password: password,
-      name: name,
+      firstName: firstName,
+      lastName: lastName,
     );
 
     if (!mounted) return;
@@ -453,14 +457,32 @@ class _AuthDialogState extends State<AuthDialog>
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
-                          TextField(
-                            controller: _regNameController,
-                            textCapitalization: TextCapitalization.words,
-                            decoration: const InputDecoration(
-                              labelText: 'Name / Vorname',
-                              prefixIcon: Icon(Icons.person_outline),
-                              border: OutlineInputBorder(),
-                            ),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: TextField(
+                                  controller: _regFirstNameController,
+                                  textCapitalization: TextCapitalization.words,
+                                  decoration: const InputDecoration(
+                                    labelText: 'Vorname *',
+                                    prefixIcon: Icon(Icons.person_outline),
+                                    border: OutlineInputBorder(),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: TextField(
+                                  controller: _regLastNameController,
+                                  textCapitalization: TextCapitalization.words,
+                                  decoration: const InputDecoration(
+                                    labelText: 'Nachname *',
+                                    prefixIcon: Icon(Icons.person_outline),
+                                    border: OutlineInputBorder(),
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
                           const SizedBox(height: 10),
                           TextField(

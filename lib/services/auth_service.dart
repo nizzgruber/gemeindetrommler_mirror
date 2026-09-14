@@ -18,6 +18,29 @@ class AuthService extends ChangeNotifier {
   String? get email => _user?.email;
   String? get displayName => _user?.displayName;
 
+  String? _cachedFirstName;
+  String? _cachedLastName;
+
+  String get firstName {
+    if (_cachedFirstName != null && _cachedFirstName!.isNotEmpty) {
+      return _cachedFirstName!;
+    }
+    final name = _user?.displayName ?? '';
+    if (name.isEmpty) return '';
+    final parts = name.trim().split(RegExp(r'\s+'));
+    return parts.isNotEmpty ? parts.first : '';
+  }
+
+  String get lastName {
+    if (_cachedLastName != null && _cachedLastName!.isNotEmpty) {
+      return _cachedLastName!;
+    }
+    final name = _user?.displayName ?? '';
+    if (name.isEmpty) return '';
+    final parts = name.trim().split(RegExp(r'\s+'));
+    return parts.length > 1 ? parts.sublist(1).join(' ') : '';
+  }
+
   AuthService() {
     _initAuth();
   }
@@ -25,6 +48,8 @@ class AuthService extends ChangeNotifier {
   Future<void> _initAuth() async {
     final prefs = await SharedPreferences.getInstance();
     _isCommunityUnlocked = prefs.getBool(_prefKeyUnlocked) ?? false;
+    _cachedFirstName = prefs.getString('user_first_name');
+    _cachedLastName = prefs.getString('user_last_name');
 
     _auth.authStateChanges().listen((User? user) {
       _user = user;
@@ -80,11 +105,12 @@ class AuthService extends ChangeNotifier {
     }
   }
 
-  /// Sign up with Email, Password, and Full Name
+  /// Sign up with Email, Password, First Name, and Last Name
   Future<String?> signUpWithEmail({
     required String email,
     required String password,
-    required String name,
+    required String firstName,
+    required String lastName,
   }) async {
     try {
       final credential = await _auth.createUserWithEmailAndPassword(
@@ -93,9 +119,18 @@ class AuthService extends ChangeNotifier {
       );
       _user = credential.user;
       if (_user != null) {
-        if (name.isNotEmpty) {
-          await _user!.updateDisplayName(name.trim());
+        final cleanFirst = firstName.trim();
+        final cleanLast = lastName.trim();
+        final fullName = '$cleanFirst $cleanLast'.trim();
+        if (fullName.isNotEmpty) {
+          await _user!.updateDisplayName(fullName);
         }
+        _cachedFirstName = cleanFirst;
+        _cachedLastName = cleanLast;
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString('user_first_name', cleanFirst);
+        await prefs.setString('user_last_name', cleanLast);
+
         // Send email verification so user verifies they own the email address
         try {
           await _user!.sendEmailVerification();
@@ -169,6 +204,11 @@ class AuthService extends ChangeNotifier {
   /// Sign out
   Future<void> signOut() async {
     try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove('user_first_name');
+      await prefs.remove('user_last_name');
+      _cachedFirstName = null;
+      _cachedLastName = null;
       await _auth.signOut();
     } catch (e) {
       if (kDebugMode) {
