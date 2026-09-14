@@ -23,7 +23,9 @@ allprojects {
 
 rootProject.buildDir = '../build'
 subprojects {
-    // Note: Do not override project.buildDir across different drives on Windows (H: vs C:)
+    project.buildDir = "${rootProject.buildDir}/${project.name}"
+}
+subprojects {
     
     // Inject namespace into plugins that don't have it (required for AGP 8+)
     afterEvaluate { project ->

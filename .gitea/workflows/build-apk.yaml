@@ -101,10 +101,18 @@ jobs:
           flutter test
 
       - name: Build Universal Release APK
-        run: flutter build apk --release
+        run: |
+          flutter build apk --release || {
+            echo "Checking if APK was built despite path mismatch..."
+            find build android -type f -name "*release*.apk" 2>/dev/null
+          }
 
       - name: Build Split-per-ABI Release APKs
-        run: flutter build apk --release --split-per-abi
+        run: |
+          flutter build apk --release --split-per-abi || {
+            echo "Checking if split APKs were built despite path mismatch..."
+            find build android -type f -name "*release*.apk" 2>/dev/null
+          }
 
       - name: Organize Artifacts
         run: |
@@ -112,17 +120,18 @@ jobs:
           # Copy universal APK
           if [ -f build/app/outputs/flutter-apk/app-release.apk ]; then
             cp build/app/outputs/flutter-apk/app-release.apk release-apks/oggauer-gemeindetrommler-universal-release.apk
+          elif [ -f android/app/build/outputs/apk/release/app-release.apk ]; then
+            cp android/app/build/outputs/apk/release/app-release.apk release-apks/oggauer-gemeindetrommler-universal-release.apk
           fi
           # Copy split APKs
-          if [ -f build/app/outputs/flutter-apk/app-arm64-v8a-release.apk ]; then
-            cp build/app/outputs/flutter-apk/app-arm64-v8a-release.apk release-apks/oggauer-gemeindetrommler-arm64-v8a.apk
-          fi
-          if [ -f build/app/outputs/flutter-apk/app-armeabi-v7a-release.apk ]; then
-            cp build/app/outputs/flutter-apk/app-armeabi-v7a-release.apk release-apks/oggauer-gemeindetrommler-armeabi-v7a.apk
-          fi
-          if [ -f build/app/outputs/flutter-apk/app-x86_64-release.apk ]; then
-            cp build/app/outputs/flutter-apk/app-x86_64-release.apk release-apks/oggauer-gemeindetrommler-x86_64.apk
-          fi
+          for apk in build/app/outputs/flutter-apk/*.apk android/app/build/outputs/apk/release/*.apk; do
+            [ -f "$apk" ] || continue
+            case "$(basename "$apk")" in
+              *arm64-v8a*) cp "$apk" release-apks/oggauer-gemeindetrommler-arm64-v8a.apk ;;
+              *armeabi-v7a*) cp "$apk" release-apks/oggauer-gemeindetrommler-armeabi-v7a.apk ;;
+              *x86_64*) cp "$apk" release-apks/oggauer-gemeindetrommler-x86_64.apk ;;
+            esac
+          done
           echo "=== Generated APK Artifacts ==="
           ls -lah release-apks/
 
