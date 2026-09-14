@@ -43,7 +43,7 @@ class _AuthDialogState extends State<AuthDialog>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 3, vsync: this);
+    _tabController = TabController(length: 2, vsync: this);
   }
 
   @override
@@ -316,7 +316,6 @@ class _AuthDialogState extends State<AuthDialog>
                 tabs: const [
                   Tab(text: 'Anmelden'),
                   Tab(text: 'Registrieren'),
-                  Tab(text: 'Bürger-Code'),
                 ],
               ),
               if (_errorMessage != null) ...[
@@ -433,11 +432,22 @@ class _AuthDialogState extends State<AuthDialog>
                           ),
                           const SizedBox(height: 14),
                           _buildGoogleButton(label: 'Mit Google anmelden'),
+                          const SizedBox(height: 16),
+                          Center(
+                            child: TextButton(
+                              onPressed: () => _tabController.animateTo(1),
+                              child: const Text(
+                                'Noch kein Konto? Hier registrieren oder Bürger-Code eingeben',
+                                textAlign: TextAlign.center,
+                                style: TextStyle(fontSize: 12),
+                              ),
+                            ),
+                          ),
                         ],
                       ),
                     ),
 
-                    // Tab 2: Registrierung
+                    // Tab 2: Registrierung & Bürger-Code
                     SingleChildScrollView(
                       padding: const EdgeInsets.only(top: 6, bottom: 12),
                       child: Column(
@@ -546,16 +556,25 @@ class _AuthDialogState extends State<AuthDialog>
                           ),
                           const SizedBox(height: 14),
                           _buildGoogleButton(label: 'Mit Google registrieren'),
-                        ],
-                      ),
-                    ),
-
-                    // Tab 3: Bürger-Code
-                    SingleChildScrollView(
-                      padding: const EdgeInsets.only(top: 6, bottom: 12),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
+                          const SizedBox(height: 18),
+                          Row(
+                            children: [
+                              Expanded(child: Divider(color: Colors.grey.shade300)),
+                              Padding(
+                                padding: const EdgeInsets.symmetric(horizontal: 10),
+                                child: Text(
+                                  'ODER MIT BÜRGER-CODE',
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    color: Colors.grey.shade600,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+                              Expanded(child: Divider(color: Colors.grey.shade300)),
+                            ],
+                          ),
+                          const SizedBox(height: 14),
                           Container(
                             padding: const EdgeInsets.all(12),
                             decoration: BoxDecoration(
@@ -564,36 +583,48 @@ class _AuthDialogState extends State<AuthDialog>
                               border: Border.all(color: Colors.blue.shade100),
                             ),
                             child: const Text(
-                              'Du möchtest kein persönliches E-Mail-Konto anlegen? Gib einfach den Zugangscode des Bürgerforums ein (z.B. oggau), um sofort Mängel und Ideen melden zu können.',
+                              'Kein persönliches Konto gewünscht? Gib den Zugangscode des Bürgerforums ein (z.B. oggau), um sofort Mängel & Ideen melden zu können.',
                               style: TextStyle(
-                                  fontSize: 13, color: Colors.black87),
+                                  fontSize: 12, color: Colors.black87),
                             ),
+                          ),
+                          const SizedBox(height: 12),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: TextField(
+                                  controller: _codeController,
+                                  decoration: const InputDecoration(
+                                    labelText: 'Bürger-Zugangscode',
+                                    prefixIcon: Icon(Icons.key_outlined),
+                                    border: OutlineInputBorder(),
+                                    hintText: 'z.B. oggau',
+                                    isDense: true,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              ElevatedButton(
+                                onPressed: _isLoading ? null : _handleCodeUnlock,
+                                style: ElevatedButton.styleFrom(
+                                  padding: const EdgeInsets.symmetric(
+                                      vertical: 14, horizontal: 16),
+                                  backgroundColor: Colors.blue.shade700,
+                                  foregroundColor: Colors.white,
+                                ),
+                                child: const Text('Freischalten'),
+                              ),
+                            ],
                           ),
                           const SizedBox(height: 16),
-                          TextField(
-                            controller: _codeController,
-                            decoration: const InputDecoration(
-                              labelText: 'Bürger-Zugangscode',
-                              prefixIcon: Icon(Icons.key_outlined),
-                              border: OutlineInputBorder(),
-                              hintText: 'z.B. oggau',
+                          Center(
+                            child: TextButton(
+                              onPressed: () => _tabController.animateTo(0),
+                              child: const Text(
+                                'Bereits ein Konto? Hier anmelden',
+                                style: TextStyle(fontSize: 12),
+                              ),
                             ),
-                          ),
-                          const SizedBox(height: 20),
-                          ElevatedButton(
-                            onPressed: _isLoading ? null : _handleCodeUnlock,
-                            style: ElevatedButton.styleFrom(
-                              padding: const EdgeInsets.symmetric(vertical: 13),
-                            ),
-                            child: _isLoading
-                                ? const SizedBox(
-                                    width: 20,
-                                    height: 20,
-                                    child: CircularProgressIndicator(
-                                        strokeWidth: 2),
-                                  )
-                                : const Text('Freischalten',
-                                    style: TextStyle(fontSize: 15)),
                           ),
                         ],
                       ),
