@@ -15,7 +15,8 @@ service firebase.storage {
       // Nur der Verfasser oder ein Admin darf sein Foto löschen
       allow delete: if request.auth != null && (
         request.auth.uid == userId ||
-        request.auth.token.admin == true
+        request.auth.token.admin == true ||
+        request.auth.token.email == 'nicolas@gruber.info'
       );
     }
   }

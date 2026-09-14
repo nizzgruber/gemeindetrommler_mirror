@@ -47,8 +47,17 @@ class AuthService extends ChangeNotifier {
     _initAuth();
   }
 
+  static const List<String> adminEmails = [
+    'nicolas@gruber.info',
+  ];
+
   Future<void> _checkAdminClaim(User? user) async {
     if (user != null && !user.isAnonymous) {
+      final email = user.email?.trim().toLowerCase();
+      if (email != null && adminEmails.contains(email)) {
+        _isAdmin = true;
+        return;
+      }
       try {
         final tokenResult = await user.getIdTokenResult();
         _isAdmin = tokenResult.claims?['admin'] == true;

@@ -51,11 +51,13 @@ class InfoScreen extends StatelessWidget {
           const SizedBox(height: 8),
           // Bürgerforum Access & Account Card
           Card(
-            color: auth.isRegisteredUser
-                ? Colors.green.shade50
-                : auth.isCommunityUnlocked
-                    ? Colors.teal.shade50
-                    : Colors.blue.shade50,
+            color: auth.isAdmin
+                ? Colors.indigo.shade50
+                : auth.isRegisteredUser
+                    ? Colors.green.shade50
+                    : auth.isCommunityUnlocked
+                        ? Colors.teal.shade50
+                        : Colors.blue.shade50,
             shape:
                 RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             child: Padding(
@@ -65,16 +67,20 @@ class InfoScreen extends StatelessWidget {
                   Row(
                     children: [
                       Icon(
-                        auth.isRegisteredUser
-                            ? Icons.account_circle
-                            : auth.isCommunityUnlocked
-                                ? Icons.verified_user
-                                : Icons.lock_outline,
-                        color: auth.isRegisteredUser
-                            ? Colors.green.shade700
-                            : auth.isCommunityUnlocked
-                                ? Colors.teal.shade800
-                                : Colors.blue.shade800,
+                        auth.isAdmin
+                            ? Icons.admin_panel_settings
+                            : auth.isRegisteredUser
+                                ? Icons.account_circle
+                                : auth.isCommunityUnlocked
+                                    ? Icons.verified_user
+                                    : Icons.lock_outline,
+                        color: auth.isAdmin
+                            ? Colors.indigo.shade700
+                            : auth.isRegisteredUser
+                                ? Colors.green.shade700
+                                : auth.isCommunityUnlocked
+                                    ? Colors.teal.shade800
+                                    : Colors.blue.shade800,
                         size: 36,
                       ),
                       const SizedBox(width: 14),
@@ -83,23 +89,27 @@ class InfoScreen extends StatelessWidget {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              auth.isRegisteredUser
-                                  ? (auth.displayName?.isNotEmpty == true
-                                      ? auth.displayName!
-                                      : 'Bürger-Konto')
-                                  : auth.isCommunityUnlocked
-                                      ? 'Bürgerzugang: Aktiv (Code)'
-                                      : 'Gastmodus (Nur Lesen)',
+                              auth.isAdmin
+                                  ? 'Administrator'
+                                  : auth.isRegisteredUser
+                                      ? (auth.displayName?.isNotEmpty == true
+                                          ? auth.displayName!
+                                          : 'Bürger-Konto')
+                                      : auth.isCommunityUnlocked
+                                          ? 'Bürgerzugang: Aktiv (Code)'
+                                          : 'Gastmodus (Nur Lesen)',
                               style: const TextStyle(
                                   fontWeight: FontWeight.bold, fontSize: 15),
                             ),
                             const SizedBox(height: 2),
                             Text(
-                              auth.isRegisteredUser
-                                  ? auth.email ?? 'Angemeldet'
-                                  : auth.isCommunityUnlocked
-                                      ? 'Mängel & Ideen freigeschaltet'
-                                      : 'Anmelden oder Code eingeben zum Mitwirken.',
+                              auth.isAdmin
+                                  ? '${auth.email ?? "Angemeldet"} (Admin-Rechte aktiv)'
+                                  : auth.isRegisteredUser
+                                      ? auth.email ?? 'Angemeldet'
+                                      : auth.isCommunityUnlocked
+                                          ? 'Mängel & Ideen freigeschaltet'
+                                          : 'Anmelden oder Code eingeben zum Mitwirken.',
                               style: TextStyle(
                                   fontSize: 12, color: Colors.grey.shade700),
                             ),
