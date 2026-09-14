@@ -92,8 +92,18 @@ class AuthService extends ChangeNotifier {
         password: password,
       );
       _user = credential.user;
-      if (_user != null && name.isNotEmpty) {
-        await _user!.updateDisplayName(name.trim());
+      if (_user != null) {
+        if (name.isNotEmpty) {
+          await _user!.updateDisplayName(name.trim());
+        }
+        // Send email verification so user verifies they own the email address
+        try {
+          await _user!.sendEmailVerification();
+        } catch (e) {
+          if (kDebugMode) {
+            debugPrint('Error sending verification email: $e');
+          }
+        }
       }
       notifyListeners();
       return null; // success
@@ -101,6 +111,28 @@ class AuthService extends ChangeNotifier {
       return _getLocalizedErrorMessage(e.code);
     } catch (e) {
       return 'Ein unerwarteter Fehler ist aufgetreten: $e';
+    }
+  }
+
+  /// Check if user's email is verified
+  bool get isEmailVerified => _user?.emailVerified ?? false;
+
+  /// Reload current user from Firebase to refresh emailVerified status
+  Future<void> reloadUser() async {
+    await _user?.reload();
+    _user = _auth.currentUser;
+    notifyListeners();
+  }
+
+  /// Re-send verification email
+  Future<String?> sendEmailVerification() async {
+    try {
+      await _user?.sendEmailVerification();
+      return null;
+    } on FirebaseAuthException catch (e) {
+      return _getLocalizedErrorMessage(e.code);
+    } catch (e) {
+      return 'Fehler beim Senden der Bestätigungs-E-Mail: $e';
     }
   }
 

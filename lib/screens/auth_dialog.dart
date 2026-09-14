@@ -36,6 +36,10 @@ class _AuthDialogState extends State<AuthDialog>
   bool _isLoading = false;
   String? _errorMessage;
 
+  bool _obscureLoginPassword = true;
+  bool _obscureRegPassword = true;
+  bool _obscureRegConfirmPassword = true;
+
   @override
   void initState() {
     super.initState();
@@ -128,9 +132,12 @@ class _AuthDialogState extends State<AuthDialog>
     if (error == null) {
       Navigator.pop(context);
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Konto erfolgreich erstellt! Willkommen im Bürgerforum.'),
+        SnackBar(
+          content: Text(
+            'Konto erfolgreich erstellt! Wir haben einen Bestätigungslink an $email gesendet. Bitte prüfe dein Postfach.',
+          ),
           backgroundColor: Colors.green,
+          duration: const Duration(seconds: 6),
         ),
       );
     } else {
@@ -228,22 +235,48 @@ class _AuthDialogState extends State<AuthDialog>
 
   @override
   Widget build(BuildContext context) {
+    final screenHeight = MediaQuery.of(context).size.height;
+
     return Dialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+      insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+      clipBehavior: Clip.antiAlias,
       child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 420),
+        constraints: BoxConstraints(
+          maxWidth: 440,
+          maxHeight: screenHeight * 0.82,
+        ),
         child: Padding(
-          padding: const EdgeInsets.all(20.0),
+          padding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
           child: Column(
             mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text(
-                    'Bürgerforum Oggau',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  Row(
+                    children: [
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(6),
+                        child: Image.asset(
+                          'assets/images/logo.png',
+                          height: 28,
+                          errorBuilder: (_, __, ___) => const Icon(
+                            Icons.campaign,
+                            color: Colors.blue,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      const Text(
+                        'Bürgerforum Oggau',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
                   ),
                   IconButton(
                     icon: const Icon(Icons.close),
@@ -258,11 +291,11 @@ class _AuthDialogState extends State<AuthDialog>
                 tabs: const [
                   Tab(text: 'Anmelden'),
                   Tab(text: 'Registrieren'),
-                  Tab(text: 'Code-Login'),
+                  Tab(text: 'Bürger-Code'),
                 ],
               ),
               if (_errorMessage != null) ...[
-                const SizedBox(height: 12),
+                const SizedBox(height: 10),
                 Container(
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
@@ -286,168 +319,221 @@ class _AuthDialogState extends State<AuthDialog>
                   ),
                 ),
               ],
-              const SizedBox(height: 16),
-              Flexible(
-                child: SingleChildScrollView(
-                  child: SizedBox(
-                    height: 280,
-                    child: TabBarView(
-                      controller: _tabController,
-                      children: [
-                        // Tab 1: Login
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            TextField(
-                              controller: _loginEmailController,
-                              keyboardType: TextInputType.emailAddress,
-                              decoration: const InputDecoration(
-                                labelText: 'E-Mail-Adresse',
-                                prefixIcon: Icon(Icons.email_outlined),
-                                border: OutlineInputBorder(),
-                              ),
+              const SizedBox(height: 12),
+              Expanded(
+                child: TabBarView(
+                  controller: _tabController,
+                  children: [
+                    // Tab 1: Anmelden
+                    SingleChildScrollView(
+                      padding: const EdgeInsets.only(top: 6, bottom: 12),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          TextField(
+                            controller: _loginEmailController,
+                            keyboardType: TextInputType.emailAddress,
+                            decoration: const InputDecoration(
+                              labelText: 'E-Mail-Adresse',
+                              prefixIcon: Icon(Icons.email_outlined),
+                              border: OutlineInputBorder(),
                             ),
-                            const SizedBox(height: 12),
-                            TextField(
-                              controller: _loginPasswordController,
-                              obscureText: true,
-                              decoration: const InputDecoration(
-                                labelText: 'Passwort',
-                                prefixIcon: Icon(Icons.lock_outline),
-                                border: OutlineInputBorder(),
-                              ),
-                            ),
-                            Align(
-                              alignment: Alignment.centerRight,
-                              child: TextButton(
-                                onPressed: _showPasswordResetDialog,
-                                child: const Text(
-                                  'Passwort vergessen?',
-                                  style: TextStyle(fontSize: 12),
+                          ),
+                          const SizedBox(height: 12),
+                          TextField(
+                            controller: _loginPasswordController,
+                            obscureText: _obscureLoginPassword,
+                            decoration: InputDecoration(
+                              labelText: 'Passwort',
+                              prefixIcon: const Icon(Icons.lock_outline),
+                              suffixIcon: IconButton(
+                                icon: Icon(
+                                  _obscureLoginPassword
+                                      ? Icons.visibility_off
+                                      : Icons.visibility,
                                 ),
+                                onPressed: () {
+                                  setState(() {
+                                    _obscureLoginPassword =
+                                        !_obscureLoginPassword;
+                                  });
+                                },
+                              ),
+                              border: const OutlineInputBorder(),
+                            ),
+                          ),
+                          Align(
+                            alignment: Alignment.centerRight,
+                            child: TextButton(
+                              onPressed: _showPasswordResetDialog,
+                              child: const Text(
+                                'Passwort vergessen?',
+                                style: TextStyle(fontSize: 12),
                               ),
                             ),
-                            const Spacer(),
-                            ElevatedButton(
-                              onPressed: _isLoading ? null : _handleLogin,
-                              style: ElevatedButton.styleFrom(
-                                padding:
-                                    const EdgeInsets.symmetric(vertical: 12),
-                              ),
-                              child: _isLoading
-                                  ? const SizedBox(
-                                      width: 20,
-                                      height: 20,
-                                      child: CircularProgressIndicator(
-                                          strokeWidth: 2),
-                                    )
-                                  : const Text('Anmelden'),
+                          ),
+                          const SizedBox(height: 12),
+                          ElevatedButton(
+                            onPressed: _isLoading ? null : _handleLogin,
+                            style: ElevatedButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(vertical: 13),
                             ),
-                          ],
-                        ),
-
-                        // Tab 2: Registrierung
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            TextField(
-                              controller: _regNameController,
-                              decoration: const InputDecoration(
-                                labelText: 'Name / Vorname',
-                                prefixIcon: Icon(Icons.person_outline),
-                                border: OutlineInputBorder(),
-                              ),
-                            ),
-                            const SizedBox(height: 10),
-                            TextField(
-                              controller: _regEmailController,
-                              keyboardType: TextInputType.emailAddress,
-                              decoration: const InputDecoration(
-                                labelText: 'E-Mail-Adresse',
-                                prefixIcon: Icon(Icons.email_outlined),
-                                border: OutlineInputBorder(),
-                              ),
-                            ),
-                            const SizedBox(height: 10),
-                            TextField(
-                              controller: _regPasswordController,
-                              obscureText: true,
-                              decoration: const InputDecoration(
-                                labelText: 'Passwort (mind. 6 Zeichen)',
-                                prefixIcon: Icon(Icons.lock_outline),
-                                border: OutlineInputBorder(),
-                              ),
-                            ),
-                            const SizedBox(height: 10),
-                            TextField(
-                              controller: _regConfirmPasswordController,
-                              obscureText: true,
-                              decoration: const InputDecoration(
-                                labelText: 'Passwort bestätigen',
-                                prefixIcon: Icon(Icons.lock_outline),
-                                border: OutlineInputBorder(),
-                              ),
-                            ),
-                            const Spacer(),
-                            ElevatedButton(
-                              onPressed: _isLoading ? null : _handleRegister,
-                              style: ElevatedButton.styleFrom(
-                                padding:
-                                    const EdgeInsets.symmetric(vertical: 12),
-                              ),
-                              child: _isLoading
-                                  ? const SizedBox(
-                                      width: 20,
-                                      height: 20,
-                                      child: CircularProgressIndicator(
-                                          strokeWidth: 2),
-                                    )
-                                  : const Text('Konto erstellen'),
-                            ),
-                          ],
-                        ),
-
-                        // Tab 3: Bürger-Code
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            const Text(
-                              'Du möchtest kein persönliches Konto anlegen? Gib einfach den Zugangscode des Bürgerforums ein, um sofort Mängel und Ideen melden zu können.',
-                              style:
-                                  TextStyle(fontSize: 13, color: Colors.black87),
-                            ),
-                            const SizedBox(height: 16),
-                            TextField(
-                              controller: _codeController,
-                              obscureText: true,
-                              decoration: const InputDecoration(
-                                labelText: 'Bürger-Zugangscode',
-                                prefixIcon: Icon(Icons.key_outlined),
-                                border: OutlineInputBorder(),
-                                hintText: 'z.B. oggau',
-                              ),
-                            ),
-                            const Spacer(),
-                            ElevatedButton(
-                              onPressed: _isLoading ? null : _handleCodeUnlock,
-                              style: ElevatedButton.styleFrom(
-                                padding:
-                                    const EdgeInsets.symmetric(vertical: 12),
-                              ),
-                              child: _isLoading
-                                  ? const SizedBox(
-                                      width: 20,
-                                      height: 20,
-                                      child: CircularProgressIndicator(
-                                          strokeWidth: 2),
-                                    )
-                                  : const Text('Freischalten'),
-                            ),
-                          ],
-                        ),
-                      ],
+                            child: _isLoading
+                                ? const SizedBox(
+                                    width: 20,
+                                    height: 20,
+                                    child: CircularProgressIndicator(
+                                        strokeWidth: 2),
+                                  )
+                                : const Text('Anmelden',
+                                    style: TextStyle(fontSize: 15)),
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
+
+                    // Tab 2: Registrierung
+                    SingleChildScrollView(
+                      padding: const EdgeInsets.only(top: 6, bottom: 12),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          TextField(
+                            controller: _regNameController,
+                            textCapitalization: TextCapitalization.words,
+                            decoration: const InputDecoration(
+                              labelText: 'Name / Vorname',
+                              prefixIcon: Icon(Icons.person_outline),
+                              border: OutlineInputBorder(),
+                            ),
+                          ),
+                          const SizedBox(height: 10),
+                          TextField(
+                            controller: _regEmailController,
+                            keyboardType: TextInputType.emailAddress,
+                            decoration: const InputDecoration(
+                              labelText: 'E-Mail-Adresse',
+                              prefixIcon: Icon(Icons.email_outlined),
+                              border: OutlineInputBorder(),
+                              helperText:
+                                  'Erhält einen Bestätigungslink zur Prüfung',
+                            ),
+                          ),
+                          const SizedBox(height: 10),
+                          TextField(
+                            controller: _regPasswordController,
+                            obscureText: _obscureRegPassword,
+                            decoration: InputDecoration(
+                              labelText: 'Passwort (mind. 6 Zeichen)',
+                              prefixIcon: const Icon(Icons.lock_outline),
+                              suffixIcon: IconButton(
+                                icon: Icon(
+                                  _obscureRegPassword
+                                      ? Icons.visibility_off
+                                      : Icons.visibility,
+                                ),
+                                onPressed: () {
+                                  setState(() {
+                                    _obscureRegPassword = !_obscureRegPassword;
+                                  });
+                                },
+                              ),
+                              border: const OutlineInputBorder(),
+                            ),
+                          ),
+                          const SizedBox(height: 10),
+                          TextField(
+                            controller: _regConfirmPasswordController,
+                            obscureText: _obscureRegConfirmPassword,
+                            decoration: InputDecoration(
+                              labelText: 'Passwort bestätigen',
+                              prefixIcon: const Icon(Icons.lock_outline),
+                              suffixIcon: IconButton(
+                                icon: Icon(
+                                  _obscureRegConfirmPassword
+                                      ? Icons.visibility_off
+                                      : Icons.visibility,
+                                ),
+                                onPressed: () {
+                                  setState(() {
+                                    _obscureRegConfirmPassword =
+                                        !_obscureRegConfirmPassword;
+                                  });
+                                },
+                              ),
+                              border: const OutlineInputBorder(),
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+                          ElevatedButton(
+                            onPressed: _isLoading ? null : _handleRegister,
+                            style: ElevatedButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(vertical: 13),
+                            ),
+                            child: _isLoading
+                                ? const SizedBox(
+                                    width: 20,
+                                    height: 20,
+                                    child: CircularProgressIndicator(
+                                        strokeWidth: 2),
+                                  )
+                                : const Text(
+                                    'Konto erstellen & E-Mail bestätigen',
+                                    style: TextStyle(fontSize: 14)),
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    // Tab 3: Bürger-Code
+                    SingleChildScrollView(
+                      padding: const EdgeInsets.only(top: 6, bottom: 12),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: Colors.blue.shade50,
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(color: Colors.blue.shade100),
+                            ),
+                            child: const Text(
+                              'Du möchtest kein persönliches E-Mail-Konto anlegen? Gib einfach den Zugangscode des Bürgerforums ein (z.B. oggau), um sofort Mängel und Ideen melden zu können.',
+                              style: TextStyle(
+                                  fontSize: 13, color: Colors.black87),
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+                          TextField(
+                            controller: _codeController,
+                            decoration: const InputDecoration(
+                              labelText: 'Bürger-Zugangscode',
+                              prefixIcon: Icon(Icons.key_outlined),
+                              border: OutlineInputBorder(),
+                              hintText: 'z.B. oggau',
+                            ),
+                          ),
+                          const SizedBox(height: 20),
+                          ElevatedButton(
+                            onPressed: _isLoading ? null : _handleCodeUnlock,
+                            style: ElevatedButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(vertical: 13),
+                            ),
+                            child: _isLoading
+                                ? const SizedBox(
+                                    width: 20,
+                                    height: 20,
+                                    child: CircularProgressIndicator(
+                                        strokeWidth: 2),
+                                  )
+                                : const Text('Freischalten',
+                                    style: TextStyle(fontSize: 15)),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ],
