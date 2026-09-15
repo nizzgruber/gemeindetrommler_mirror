@@ -1,4 +1,4 @@
-﻿name: Build iOS IPA
+name: Build iOS IPA
 
 on:
   push:
@@ -45,18 +45,13 @@ jobs:
 
       - name: Build iOS (Unsigned IPA)
         run: |
-          flutter build ios --release --no-codesign --verbose 2>&1 | tee build.log || {
-            echo ### ❌ iOS Build Failed >> 
-            echo '`' >> 
-            tail -n 120 build.log >> 
-            echo '`' >> 
-            exit 1
-          }
+          flutter build ios --release --no-codesign
 
           mkdir -p build/ios/iphoneos/Payload
           cp -r build/ios/iphoneos/Runner.app build/ios/iphoneos/Payload/
           cd build/ios/iphoneos
           zip -r oggauer-gemeindetrommler.ipa Payload
+
 
       - name: Upload IPA Artifact
         uses: actions/upload-artifact@v4
