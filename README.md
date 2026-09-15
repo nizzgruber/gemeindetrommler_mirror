@@ -1,86 +1,151 @@
 # Oggauer Gemeindetrommler 🥁
 
-Die **Oggauer Gemeindetrommler App** ist eine mobile Anwendung (Flutter für Android & iOS) für Bürgerinnen und Bürger der Marktgemeinde Oggau am Neusiedler See. Sie dient als digitale Plattform für Gemeinde-Nachrichten, Bürgeranliegen (Mängelmeldungen mit Foto-Upload) sowie den Austausch im Bürgerforum bzw. die Einbringung von Gemeinde-Ideen inklusive PDF-Exportfunktionen.
+Die **Oggauer Gemeindetrommler App** ist die offizielle Smartphone-Anwendung (Flutter für Android & iOS) des **Bürgerforums Oggau** für alle Bürgerinnen und Bürger der Marktgemeinde Oggau am Neusiedler See. 
+
+Die App vereint aktuelle Gemeinde-Nachrichten, offizielle PDF-Aussendungen des Bürgerforums, einen bürgernahen Mängelmelder mit Foto-Upload, eine Ideenplattform sowie einen direkten Kontaktkanal mit integriertem Admin-Posteingang und vollständiger In-App-Benutzerverwaltung.
 
 ---
 
-## 📱 Aktueller Funktionsumfang (Ist-Zustand)
+## 📱 Funktionsumfang & Module
 
-Die App wurde in ihrer Erstversion mit Unterstützung von KI (frühe GPT-Modelle) entwickelt und nutzt Firebase als Backend.
+### 1. 📰 Nachrichten & Offizielle PDF-Aussendungen (`News`)
+- **Chronologischer Feed:** Vereint manuell erstellte Gemeinde-Nachrichten und die offiziellen Rundschreiben/Aussendungen des Bürgerforums nach Datum sortiert (neueste zuerst).
+- **WordPress REST-API Anbindung:** Vollautomatische Synchronisation der Aussendungen von [buergerforumoggau.at](https://buergerforumoggau.at/category/aktuelles/aussendungen/) inklusive HTML-Bereinigung und PDF-Extraktion.
+- **Offline-First:** Geladene Aussendungen werden lokal via `SharedPreferences` zwischengespeichert und stehen sofort beim App-Start sowie offline zur Verfügung.
+- **Integrierter PDF-Reader:**
+  - Flüssige In-App-Vorschau ohne externe App zwingend öffnen zu müssen.
+  - **Stufenloser Zoom:** Gesten-Zoom (Pinch-to-Zoom von 0.8x bis 5.0x) und schwebendes Bedienfeld (`+`, `-`, `1:1` Reset auf 100%).
+  - **Drucken & Teilen:** Direktes Teilen von PDFs via `Printing.sharePdf` und System-Druckfunktion.
+  - **Browser-Aufruf:** Öffnen des Original-Dokuments im Standard-Webbrowser oder externen PDF-Viewer.
+- **Filter-Leiste:** Schnelles Filtern nach `Alle`, `Aussendungen (PDF)` und `Aktuelles`.
+- **Echtzeitsuche & PDF-Export:** Volltextsuche in Beiträgen sowie Export von Einzelbeiträgen oder Tabellenübersichten als PDF.
+- **Redaktions-Funktion:** Berechtigte Administratoren können neue Nachrichten direkt über die App mit Titel, Text und Beitragsbild erfassen.
 
-### 1. Neuigkeiten (`News`)
-- Liste aktueller Berichte und Neuigkeiten aus der Gemeinde mit Datum, Überschrift, Textvorschau und Beitragsbild.
-- Detailansicht mit vollständigem Text und großem Beitragsbild.
-- PDF-Export: Sowohl Einzelbeiträge als auch eine Mehrfachauswahl können direkt als PDF generiert und geteilt werden.
+### 2. ⚠️ Mängelmelder (`Issues`)
+- **Mängelübersicht:** Chronologische Liste aller im Gemeindegebiet gemeldeten Mängel mit Bildvorschau, Status und Ortsangabe.
+- **Strukturierte Erfassung:**
+  - Titel und detaillierte Beschreibung.
+  - Kategorie-Auswahl (z. B. Straßenbeleuchtung, Straßenschäden, Grünflächen, Müll, Spielplätze).
+  - Pflicht-Dropdown aller offiziellen Straßen in Oggau.
+  - Bis zu 2 Fotos (Aufnahme direkt per Kamera oder Auswahl aus der Galerie).
+  - Automatische Bildkomprimierung und Speicheroptimierung (< 10 MB).
+- **Status-Workflow:** Verwaltung durch Administratoren (`Gemeldet` $\rightarrow$ `In Bearbeitung` $\rightarrow$ `Behoben`).
+- **Sammel-PDF-Druck:** Mehrfachauswahl gemeldeter Mängel mit tabellarischem PDF-Export (ideal zur Weiterleitung an den Bauhof oder Gemeinderat).
+- **Löschfunktion:** Verfasser und Administratoren können Meldungen per Wischgeste entfernen.
 
-### 2. Mängelübersicht & Mängelmeldung (`Issues`)
-- Übersicht über gemeldete Mängel im Ortsgebiet (chronologisch sortiert).
-- Erfassung neuer Mängel mit Titel, Beschreibungstext und Foto (Kamera oder Galerie).
-- Automatischer Zuschnitt (1:1 Quadrat) und Größenvalidierung (< 10 MB).
-- Eigene Meldungen können per Wischgeste (Swipe-to-Delete) entfernt werden.
-- Mehrfachauswahl von Mängeln mit Sammel-PDF-Export (z. B. zur Weiterleitung an den Bauhof).
+### 3. 💡 BürgerForum & Ideen (`CitizensForum`)
+- Bürger-Beteiligungsplattform für Anregungen, Projektideen und Initiativen zur Dorfentwicklung.
+- Erfassung mit Titel, Freitextbeschreibung und bis zu 2 Fotos/Anhängen.
+- PDF-Export und Druckunterstützung zur Vorstellung in Ausschüssen oder Sitzungen.
 
-### 3. BürgerForum / Ideen (`CitizensForum`)
-- Plattform zur Einbringung von Anregungen und Vorschlägen für das Gemeindeleben.
-- Nutzt aktuell den gleichen Erfassungs- und PDF-Export-Workflow wie bei den Mängeln.
+### 4. 📬 Kontakt & Admin-Posteingang (`Contact`)
+- **Bürger-Kontaktformular:**
+  - Einfache und direkte Kontaktaufnahme mit dem Bürgerforum.
+  - Pflichtangaben: Name, E-Mail-Adresse und Anliegen.
+  - Optionale Rückruf-Telefonnummer für schnelle Rückfragen.
+  - Rechtlicher Datenschutzhinweis.
+- **Admin-Posteingang (`AdminMessagesScreen`):**
+  - Administratoren haben direkten Zugriff auf alle über die App eingesendeten Bürgernachrichten.
+  - **Echtzeit-Aktualisierung** via Firestore.
+  - **Filter-Chips:** Schnelles Filtern nach `Alle`, `Neu`, `In Bearbeitung` und `Erledigt`.
+  - **Volltextsuche:** Durchsucht Betreff, Nachrichtentext, Absender-Name und E-Mail-Adresse.
+  - **Detail-Ansicht (Bottom Sheet):**
+    - Vollständiger Nachrichtentext mit Metadaten und Zeitstempel.
+    - Statuswechsel (`Neu`, `In Bearbeitung`, `Erledigt`).
+    - Ein-Klick-Aktionen: Direkte E-Mail-Antwort (`mailto:`) und Anruf (`tel:`).
+    - Sicheres Löschen erledigter Nachrichten.
 
-### 4. Authentifizierung (`AuthState`)
-- Anonyme Firebase-Authentifizierung (`FirebaseAuth.signInAnonymously`).
-- Lesemodus für Gäste; Erstellen und Löschen eigener Beiträge ist an den angemeldeten Nutzerstatus gekoppelt.
+### 5. ℹ️ Bürgerforum-Info, Leitbild & In-App-Benutzerverwaltung (`Info`)
+- **Leitbild & Über uns:** Informationen über die Grundsätze, Ziele und Aktivitäten des Bürgerforums Oggau.
+- **Notrufnummern:** Wichtige Notfallkontakte (Feuerwehr, Polizei, Rettung, Euronotruf, Vergiftungszentrale, etc.) auf einen Blick mit direkter Anruffunktion.
+- **Benutzerkonto-Status:** Transparente Anzeige des Anmeldestatus (`Gast`, `Bürger`, `Administrator`).
+- **In-App-Benutzerverwaltung (`UserManagementScreen`):**
+  - Keine Notwendigkeit mehr, für die Rollenvergabe die Firebase Console zu öffnen.
+  - Vollständige Liste aller registrierten Bürger mit Such- und Filterfunktion (`Alle`, `Administratoren`, `Bürger`).
+  - **Admin-Rechte verwalten:** Beförderung zum Administrator oder Entzug von Admin-Rechten mit einem Klick (inklusive Sicherheits-Bestätigungsdialog).
+  - **Selbstentzugs-Schutz:** Der angemeldete Admin kann sich nicht versehentlich selbst die Administrationsrechte entziehen.
+  - **Manuelle Admin-Freischaltung:** Zusätzliche Dialog-Eingabe zur direkten Autorisierung per E-Mail oder UID.
 
 ---
 
-## 🔍 Soll vs. Ist Abgleich (Original-Anforderungen)
+## 🔒 Sicherheitsarchitektur (Backend & Frontend)
 
-Basierend auf dem ursprünglichen Lastenheft von Thomas und den UI-Wireframes (`App (1).xlsx`) ergibt sich folgender Umsetzungsstatus:
+Die Sicherheit und Integrität der Bürgerdaten wird durch ein mehrstufiges Sicherheitskonzept gewährleistet:
 
-| Anforderung / Modul | Ursprüngliche Spezifikation | Aktueller Umsetzungsstatus | Status |
-|---|---|---|---|
-| **Startseite / News** | 2-Zeilen-Vorschau, Trennlinie, Volltextsuche (Lupe), Detailansicht, PDF/JPG-Anhänge | Überschrift, Datum, 3 Zeilen Text, Bild, Detailansicht | 🟡 Teilweise (Suche fehlt, nur 1 Bild) |
-| **Mängelübersicht** | Liste, Volltextsuche, PDF-Tabellendruck einer Auswahl | Liste vorhanden, Checkbox-Auswahl + PDF-Druck integriert | 🟡 Teilweise (Suche & Tabellenlayout im PDF fehlen) |
-| **Mängelerfassung** | Pflicht-Dropdown für Straße/Ort, Dropdown für Grundlage, max. 2 Fotos im Querformat (max. 800x600), automatischer Verfasser | Titel, Beschreibung, 1 Foto im Quadrat (1:1). Keine Dropdowns | 🔴 Wesentliche Felder fehlen |
-| **Ideen** | Wie Mängel, bis zu 5 Anhänge (PDF/Bilder), kein Druck erforderlich | Als „BürgerForum“ realisiert, aber identische Maske zu Mängeln (nur 1 Bild) | 🟡 Teilweise (Mehrfach-Upload bis 5 Dateien fehlt) |
-| **Kontakt** | Freitext, Name, Nachname, E-Mail (Pflicht), Rückrufnummer (optional), E-Mail-Versand, Rechtshinweis | Nicht im Menü eingebunden; nur Registrier-Fragmente vorhanden | 🔴 Fehlt komplett |
-| **Information / Impressum** | Öffentliche Gemeinde-Infos, Veranstaltungen, Impressum ohne Login frei zugänglich | Nicht vorhanden | 🔴 Fehlt komplett |
-| **Zugangsschutz / Auth** | Gemeindebürger-Zugang via Passwort/Freigabe; nur Info-Bereich offen | Anonymer Login per Knopfdruck für alle; Fragmente für E-Mail-Login | 🔴 Entspricht nicht dem Passwort-Konzept |
-| **Design & Header** | Neutraler Hintergrund, optionales Betreiber-Logo im Header | Schlichter Material-AppBar-Header ohne Logo | 🟡 Optimierbar |
+1. **Firestore Security Rules (`firestore.rules`):**
+   - **`/Users/{userId}`:** Nutzer können ihr eigenes Profil lesen und pflegen. Nur Administratoren (`isAdmin()`) haben Vollzugriff auf alle Benutzerprofile.
+   - **`/Admins/{adminDoc}`:** Schreib- und Löschrechte sind strikt auf bestehende Administratoren beschränkt.
+   - **`/ContactMessages/{doc}`:** Eingereichte Kontaktanfragen können ausschließlich von Administratoren oder dem jeweiligen Verfasser gelesen werden. Statusänderungen und Löschungen sind Administratoren vorbehalten.
+   - **`/News/{newsId}`:** Erstellen und Löschen von News-Beiträgen ist nur für Administratoren gestattet.
+   - **`/Issues` & `/CitizensForum`:** Angemeldete Nutzer dürfen eigene Beiträge erfassen und löschen; Admins dürfen den Bearbeitungsstatus pflegen.
+2. **Cloud Storage Rules (`storage.rules`):**
+   - Uploads sind auf angemeldete Nutzer, Dateigrößen unter 10 MB und gültige Bildformate (`image/*`) limitiert.
+   - Fotos dürfen ausschließlich vom ursprünglichen Verfasser oder von einem berechtigten Administrator gelöscht werden.
+3. **Automatische Profil-Synchronisation:**
+   - Bei jeder Anmeldung oder Registrierung gleicht `AuthService` das Benutzerprofil mit Firestore (`Users/{uid}`) ab.
+
+---
+
+## 📊 Umsetzungsstatus (Soll vs. Ist)
+
+| Anforderung / Modul | Spezifikation & Features | Umsetzungsstatus | Status |
+|---|---|---|:---:|
+| **News & Aussendungen** | Chronologischer Feed, Volltextsuche, PDF-Aussendungen der Webseite, Zoom-Viewer, PDF-Export | Vollständig integriert (WordPress REST-API, In-App Zoom Reader, Filter-Chips) | 🟢 Erledigt |
+| **Mängelübersicht** | Chronologische Liste, Straßenauswahl, Volltextsuche, Tabellen-PDF-Export, Status-Tracking | Vollständig integriert (Dropdown aller Oggauer Straßen, Statusanzeige, PDF-Export) | 🟢 Erledigt |
+| **Mängelerfassung** | Pflicht-Straße, Kategorie, max. 2 Fotos, automatische Komprimierung, Verfasser-Zuordnung | Vollständig integriert (Kamera/Galerie, Dual-Foto-Upload, Validierung) | 🟢 Erledigt |
+| **Bürgerforum / Ideen** | Bürgerbeteiligung, Beschreibung, bis zu 2 Anhänge, PDF-Export | Vollständig integriert | 🟢 Erledigt |
+| **Kontakt & Posteingang** | Kontaktformular mit Validierung, Datenschutzhinweis, Admin-Nachrichten-Posteingang | Vollständig integriert (Echtzeit-Inbox, Status-Workflow, Schnellantwort) | 🟢 Erledigt |
+| **Benutzerverwaltung** | Rollenverwaltung (Admin/Bürger), Kontoverwaltung in der App ohne Firebase Console | Vollständig integriert (In-App User Management, Selbstschutz, Echtzeit) | 🟢 Erledigt |
+| **Info & Notruf** | Leitbild Bürgerforum, Gemeinde-Informationen, Notfallnummern mit Schnellwahl | Vollständig integriert | 🟢 Erledigt |
+| **Authentifizierung & Rechte** | E-Mail/Passwort, Bürger-Freischaltung, Rollenkonzept, Gast-Zugang, Security Rules | Vollständig integriert & backend-seitig gehärtet | 🟢 Erledigt |
 
 ---
 
 ## 🏗️ Technische Architektur & Tech-Stack
 
 ### Verwendete Technologien:
-- **Framework:** [Flutter](https://flutter.dev) (Dart SDK `>=2.18.2 <3.0.0` / Dart 3 kompatibel)
-- **Backend / Cloud Services (Firebase):**
-  - `firebase_core` (Core-Initialisierung)
-  - `firebase_auth` (Authentifizierung)
-  - `cloud_firestore` (NoSQL Echtzeitdatenbank für News, Mängel, Ideen)
-  - `firebase_storage` (Speicherung hochgeladener Bilder)
-- **PDF-Erstellung & Druck:** `pdf`, `printing`
-- **Bildverarbeitung:** `image`, `image_picker`, `image_cropper`, `cached_network_image`
-- **State Management:** `provider`
+- **Framework:** [Flutter](https://flutter.dev) (Dart SDK `>=3.0.0`)
+- **Backend & Cloud Services (Google Firebase):**
+  - `firebase_core` (Initialisierung)
+  - `firebase_auth` (E-Mail & Passwort Authentifizierung, Gast-Modus)
+  - `cloud_firestore` (NoSQL Echtzeit-Datenbank)
+  - `firebase_storage` (Cloud-Bilderspeicher)
+- **Externe APIs & Web-Services:**
+  - WordPress REST-API (`http`-Paket für Bürgerforum-Aussendungen)
+  - `shared_preferences` (Offline-Zwischenspeicherung)
+- **Dokumentenverarbeitung & PDF:**
+  - `pdf`, `printing` (PDF-Generierung, In-App Vorschau & Druck)
+  - `url_launcher` (System-Browser, Telefon- und E-Mail-Intents)
+- **Bildverarbeitung:**
+  - `image_picker`, `image_cropper`, `cached_network_image`, `image`
+- **State Management:**
+  - `provider` (`MultiProvider` Architektur)
 
 ### Projektstruktur (`lib/`):
 ```text
 lib/
-├── firebase_options.dart   # Firebase-Projektkonfiguration (Android & iOS)
-├── main.dart               # App-Einstiegspunkt, Firebase Init & MultiProvider
+├── firebase_options.dart          # Firebase-Konfiguration für Android & iOS
+├── main.dart                      # Einstiegspunkt, Theme & MultiProvider Setup
 ├── models/
-│   └── post_item.dart      # Typisiertes Datenmodell für News, Mängel & Ideen
+│   └── post_item.dart             # Datenmodell für News, Aussendungen, Mängel & Ideen
 ├── screens/
-│   ├── add_issue_screen.dart # Mängelerfassung mit Straßenauswahl & bis zu 2 Fotos
-│   ├── add_post_screen.dart  # Universelle Erfassung für News & Bürgerideen
-│   ├── auth_dialog.dart      # Anmelde-, Registrierungs- & Code-Freischaltungs-Dialog
-│   ├── contact_screen.dart   # Bürgerforum-Kontaktformular & Anfragen
-│   ├── detail_screen.dart    # Detailansicht mit Metadaten & PDF-Einzelexport
-│   ├── home_screen.dart      # Haupt-Scaffold mit 5 Tabs (News, Mängel, Ideen, Kontakt, Info)
-│   ├── info_screen.dart      # Bürgerforum Leitbild, Notrufnummern & Account-Status
-│   └── post_list_screen.dart # Universelle Listenansicht, Echtzeitsuche & PDF-Tabelle
+│   ├── add_issue_screen.dart      # Mängelerfassung (Straßen-Dropdown & bis zu 2 Fotos)
+│   ├── add_post_screen.dart       # Erfassung von News (Admins) & Bürgerideen
+│   ├── admin_messages_screen.dart # Admin-Posteingang für eingegangene Kontaktanfragen
+│   ├── auth_dialog.dart           # Anmelde-, Registrierungs- & Freischaltungs-Dialog
+│   ├── contact_screen.dart        # Bürger-Kontaktformular mit Admin-Posteingang-Banner
+│   ├── detail_screen.dart         # Beitrags-Detailansicht mit PDF-Direktaufruf
+│   ├── home_screen.dart           # Haupt-Navigation mit 5 Tabs
+│   ├── info_screen.dart           # Bürgerforum Leitbild, Notrufnummern & Kontostatus
+│   ├── pdf_viewer_screen.dart     # In-App PDF-Viewer mit Pinch-to-Zoom & Schwebepanel
+│   ├── post_list_screen.dart      # News-, Mängel- & Ideen-Listen mit Volltextsuche & Filter
+│   └── user_management_screen.dart# In-App Benutzerverwaltung & Admin-Rollenvergabe
 └── services/
-    ├── auth_service.dart     # Hybrid-Auth (E-Mail/Passwort, Bürger-Code, Anonym)
-    ├── firestore_service.dart# NoSQL CRUD & Kontaktanfragen
-    ├── pdf_service.dart      # PDF-Druckerzeugung (Listen & Einzelansichten)
-    └── storage_service.dart  # Optimierter Bild-Upload (Querformat max 800x600)
+    ├── aussendungen_service.dart  # WordPress REST-API Client mit SharedPreferences-Cache
+    ├── auth_service.dart          # Authentifizierung & automatischer Firestore-Profilabgleich
+    ├── firestore_service.dart     # Firestore CRUD, Admin-Verwaltung & Kontakt-Stream
+    ├── pdf_service.dart           # PDF-Tabellen und Einzeldokument-Erstellung
+    └── storage_service.dart       # Komprimierter Cloud-Storage Bild-Upload
 ```
 
 ---
@@ -89,44 +154,36 @@ lib/
 
 Die App verfügt über eine vollautomatische Build-Pipeline für **Gitea Actions** (`.gitea/workflows/build-apk.yaml`):
 
-### Funktionen der Pipeline:
-- **Automatische Trigger:** Wird bei jedem `push` auf `main`, `master`, `refactor/**`, bei Git-Tags (`v*`) oder manuell im Webinterface (`workflow_dispatch`) ausgelöst.
-- **Isolierte Build-Umgebung:** Nutzt das offizielle `ghcr.io/cirruslabs/flutter:3.19.3` Docker-Image mit vorinstalliertem Android SDK, Java 17 und Flutter.
-- **Qualitätssicherung:** Führt automatisch `flutter analyze` und `flutter test` aus, bevor der Build startet.
-- **Vollständige APK-Generierung:**
-  - `oggauer-gemeindetrommler-universal-release.apk` (Universelle Release-APK für alle Android-Geräte)
-  - `oggauer-gemeindetrommler-arm64-v8a.apk` (Für moderne 64-Bit Smartphones)
-  - `oggauer-gemeindetrommler-armeabi-v7a.apk` (Für ältere 32-Bit Smartphones)
-  - `oggauer-gemeindetrommler-x86_64.apk` (Für Emulatoren & ChromeOS)
-- **Artifact-Upload:** Speichert die fertigen APKs als herunterladbare ZIP-Datei (`oggauer-gemeindetrommler-apks`) direkt im Gitea Run-Dashboard.
-
-### APKs in Gitea herunterladen:
-1. Im Gitea-Repository auf den Reiter **Aktionen** (*Actions*) klicken.
-2. Den gewünschten Pipeline-Durchlauf auswählen.
-3. Im Abschnitt **Artefakte** (*Artifacts*) das Paket `oggauer-gemeindetrommler-apks` herunterladen.
+- **Build-Container:** `ghcr.io/cirruslabs/flutter:3.19.3` mit vorkonfiguriertem Android SDK und Java 17.
+- **Automatisierte Qualitätskontrolle:** Führt vor jedem Build `flutter analyze` und `flutter test` aus.
+- **Erzeugte APK-Pakete:**
+  1. `oggauer-gemeindetrommler-universal-release.apk` (Universelle Version für alle Android-Smartphones).
+  2. `oggauer-gemeindetrommler-arm64-v8a.apk` (Optimiert für moderne 64-Bit Geräte).
+  3. `oggauer-gemeindetrommler-armeabi-v7a.apk` (Für ältere 32-Bit Geräte).
+  4. `oggauer-gemeindetrommler-x86_64.apk` (Für Emulatoren).
+- **Download:** Die gebauten APKs stehen nach jedem Durchlauf als ZIP-Artefakt (`oggauer-gemeindetrommler-apks`) im Gitea-Reiter **Aktionen** zum Download bereit.
 
 ---
 
-## 🛠️ Einrichtung & Lokaler Start
+## 🛠️ Einrichtung & Lokale Ausführung
 
-### Voraussetzungen
-1. **Flutter SDK** (empfohlen: `>= 3.19.x`)
-2. **Dart SDK** (enthalten in Flutter)
-3. **Android Studio** / **Xcode** (für Emulatoren oder physische Geräte)
-4. Konfiguriertes Firebase-Projekt (`gemeinde-trommler`)
+### Voraussetzungen:
+- **Flutter SDK:** `>= 3.19.x`
+- **Dart SDK:** Im Flutter SDK enthalten
+- **Android Studio / VS Code / Xcode** mit entsprechenden Emulatoren oder Testgeräten
 
-### Installation & Ausführung
+### Befehle:
 ```bash
-# 1. Abhängigkeiten installieren
+# 1. Abhängigkeiten laden
 flutter pub get
 
 # 2. Statische Code-Analyse ausführen
 flutter analyze
 
-# 3. Tests ausführen
+# 3. Unit-Tests ausführen
 flutter test
 
-# 4. App lokal starten
+# 4. App im Entwicklungsmodus starten
 flutter run
 ```
 
