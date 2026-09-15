@@ -23,6 +23,13 @@ service cloud.firestore {
       );
     }
 
+    // Benutzerprofile: Nutzer verwaltet eigenes Profil, Admins haben Vollzugriff
+    match /Users/{userId} {
+      allow read: if isAuthenticated() && (request.auth.uid == userId || isAdmin());
+      allow create, update: if isAuthenticated() && (request.auth.uid == userId || isAdmin());
+      allow delete: if isAdmin();
+    }
+
     // Admins-Sammlung: Angemeldete Nutzer können prüfen, nur Admins schreiben
     match /Admins/{adminDoc} {
       allow read: if isAuthenticated();

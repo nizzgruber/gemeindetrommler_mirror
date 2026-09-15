@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../services/auth_service.dart';
 import 'auth_dialog.dart';
+import 'user_management_screen.dart';
 
 class InfoScreen extends StatelessWidget {
   const InfoScreen({super.key});
@@ -136,6 +137,29 @@ class InfoScreen extends StatelessWidget {
                       ),
                     ],
                   ),
+                  if (auth.isAdmin) ...[
+                    const Divider(height: 20),
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton.icon(
+                        icon: const Icon(Icons.manage_accounts),
+                        label: const Text('Benutzerverwaltung & Admin-Rechte'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.indigo.shade700,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 10),
+                        ),
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => const UserManagementScreen(),
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                  ],
                   if (!auth.isRegisteredUser && auth.isCommunityUnlocked) ...[
                     const Divider(height: 16),
                     InkWell(

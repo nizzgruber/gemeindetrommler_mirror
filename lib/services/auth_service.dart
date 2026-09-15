@@ -122,11 +122,41 @@ class AuthService extends ChangeNotifier {
     _auth.authStateChanges().listen((User? user) async {
       _user = user;
       await _checkAdminClaim(user);
+      if (user != null && !user.isAnonymous) {
+        await _syncUserProfile(user);
+      }
       notifyListeners();
     });
 
     if (_user == null && _isCommunityUnlocked) {
       await signInAnonymously();
+    }
+  }
+
+  Future<void> _syncUserProfile(User user, {String? firstName, String? lastName}) async {
+    if (user.isAnonymous) return;
+    try {
+      final cleanEmail = user.email?.trim().toLowerCase() ?? '';
+      if (cleanEmail.isEmpty) return;
+
+      final cleanFirst = firstName ?? this.firstName;
+      final cleanLast = lastName ?? this.lastName;
+      final name = user.displayName ?? '$cleanFirst $cleanLast'.trim();
+
+      await FirebaseFirestore.instance.collection('Users').doc(user.uid).set({
+        'uid': user.uid,
+        'email': cleanEmail,
+        'displayName': name,
+        'firstName': cleanFirst,
+        'lastName': cleanLast,
+        'emailVerified': user.emailVerified,
+        'lastLogin': FieldValue.serverTimestamp(),
+        if (_isAdmin) 'isAdmin': true,
+      }, SetOptions(merge: true));
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('Error syncing user profile in auth service: $e');
+      }
     }
   }
 
@@ -165,6 +195,10 @@ class AuthService extends ChangeNotifier {
         password: password,
       );
       _user = credential.user;
+      await _checkAdminClaim(_user);
+      if (_user != null) {
+        await _syncUserProfile(_user!);
+      }
       notifyListeners();
       return null; // success
     } on FirebaseAuthException catch (e) {
@@ -199,6 +233,10 @@ class AuthService extends ChangeNotifier {
         final prefs = await SharedPreferences.getInstance();
         await prefs.setString('user_first_name', cleanFirst);
         await prefs.setString('user_last_name', cleanLast);
+
+        await _checkAdminClaim(_user);
+        await _syncUserProfile(_user!,
+            firstName: cleanFirst, lastName: cleanLast);
 
         // Send email verification so user verifies they own the email address
         try {

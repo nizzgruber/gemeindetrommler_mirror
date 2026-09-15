@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../services/auth_service.dart';
 import '../services/firestore_service.dart';
+import 'admin_messages_screen.dart';
 import 'auth_dialog.dart';
 
 class ContactScreen extends StatefulWidget {
@@ -118,6 +119,21 @@ class _ContactScreenState extends State<ContactScreen> {
       appBar: AppBar(
         title: const Text('Kontakt Bürgerforum'),
         centerTitle: true,
+        actions: [
+          if (auth.isAdmin)
+            IconButton(
+              icon: const Icon(Icons.inbox),
+              tooltip: 'Posteingang: Bürgernachrichten',
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => const AdminMessagesScreen(),
+                  ),
+                );
+              },
+            ),
+        ],
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
@@ -126,6 +142,38 @@ class _ContactScreenState extends State<ContactScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              if (auth.isAdmin) ...[
+                Card(
+                  color: Colors.indigo.shade50,
+                  elevation: 0,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    side: BorderSide(color: Colors.indigo.shade200),
+                  ),
+                  child: ListTile(
+                    leading: CircleAvatar(
+                      backgroundColor: Colors.indigo.shade700,
+                      child: const Icon(Icons.mark_email_unread, color: Colors.white),
+                    ),
+                    title: const Text(
+                      'Admin-Posteingang',
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                    subtitle: const Text(
+                        'Alle eingegangenen Bürgernachrichten einsehen & verwalten'),
+                    trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const AdminMessagesScreen(),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+                const SizedBox(height: 12),
+              ],
               if (!isRegistered) ...[
                 Card(
                   color: Colors.amber.shade50,

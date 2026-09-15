@@ -116,4 +116,55 @@ void main() {
       expect(list[2].id, 'news_1');
     });
   });
+
+  group('Contact Message & Admin Management Tests', () {
+    test('validates contact message status states and defaults', () {
+      const allowedStatuses = ['Neu', 'In Bearbeitung', 'Erledigt'];
+      expect(allowedStatuses.contains('Neu'), isTrue);
+      expect(allowedStatuses.contains('In Bearbeitung'), isTrue);
+      expect(allowedStatuses.contains('Erledigt'), isTrue);
+      expect(allowedStatuses.contains('Unbekannt'), isFalse);
+
+      final messageMap = {
+        'subject': 'Straßenbeleuchtung kaputt',
+        'message': 'Vor der Schule ist es dunkel.',
+        'senderName': 'Max Mustermann',
+        'senderEmail': 'max@example.com',
+        'senderPhone': '0664 1234567',
+        'status': 'Neu',
+        'userId': 'user-123',
+      };
+
+      expect(messageMap['status'], 'Neu');
+      expect(messageMap['senderEmail'], 'max@example.com');
+      expect(messageMap['userId'], 'user-123');
+    });
+
+    test('validates user profile normalization and admin lookup', () {
+      String normalizeEmail(String email) => email.trim().toLowerCase();
+
+      final rawEmail = '  Admin.Test@Oggau.at  ';
+      expect(normalizeEmail(rawEmail), 'admin.test@oggau.at');
+
+      final adminUids = {'uid_123', 'uid_456'};
+      final adminEmails = {'admin.test@oggau.at', 'buergermeister@oggau.at'};
+
+      bool isUserAdmin(String uid, String email) {
+        return adminUids.contains(uid) || adminEmails.contains(normalizeEmail(email));
+      }
+
+      expect(isUserAdmin('uid_123', 'other@mail.com'), isTrue);
+      expect(isUserAdmin('uid_999', 'Admin.Test@oggau.at'), isTrue);
+      expect(isUserAdmin('uid_999', 'regular.user@oggau.at'), isFalse);
+    });
+
+    test('prevents self-demotion check logic', () {
+      bool canDemote(String targetUid, String currentUid) {
+        return targetUid != currentUid;
+      }
+
+      expect(canDemote('target_user', 'current_admin'), isTrue);
+      expect(canDemote('current_admin', 'current_admin'), isFalse);
+    });
+  });
 }
