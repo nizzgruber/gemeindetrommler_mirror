@@ -154,7 +154,7 @@ lib/
 
 Die App verfügt über eine vollautomatische Build-Pipeline für **Gitea Actions** (`.gitea/workflows/build-apk.yaml`):
 
-- **Build-Container:** `ghcr.io/cirruslabs/flutter:3.19.3` mit vorkonfiguriertem Android SDK und Java 17.
+- **Build-Container:** `ghcr.io/cirruslabs/flutter:3.24.5` mit vorkonfiguriertem Android SDK und Java 17.
 - **Automatisierte Qualitätskontrolle:** Führt vor jedem Build `flutter analyze` und `flutter test` aus.
 - **Erzeugte APK-Pakete:**
   1. `oggauer-gemeindetrommler-universal-release.apk` (Universelle Version für alle Android-Smartphones).

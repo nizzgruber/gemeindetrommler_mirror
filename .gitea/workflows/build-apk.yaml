@@ -21,7 +21,7 @@ jobs:
     permissions:
       contents: write
     container:
-      image: ghcr.io/cirruslabs/flutter:3.19.3
+      image: ghcr.io/cirruslabs/flutter:3.24.5
       options: --privileged
     steps:
       - name: Setup Node.js 20 & ARM64 Flutter Engine

@@ -48,7 +48,8 @@ dependencies:
   cached_network_image: ^3.2.3
   image: ^4.0.16
   pdf: ^3.10.1
-  printing: ^5.10.4
+  printing: ^5.13.2
+  pdf_widget_wrapper: ^1.0.4
   image_cropper: ^8.0.1
   logging: ^1.1.1
   provider: ^6.0.5
