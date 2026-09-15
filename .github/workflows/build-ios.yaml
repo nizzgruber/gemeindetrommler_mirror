@@ -1,0 +1,57 @@
+﻿name: Build iOS IPA
+
+on:
+  push:
+    branches:
+      - main
+      - master
+    tags:
+      - 'v*'
+      - 'latest'
+  workflow_dispatch:
+
+jobs:
+  build-ios:
+    name: Build iOS IPA
+    runs-on: macos-14
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.19.3'
+          channel: 'stable'
+          cache: true
+
+      - name: Inspect Environment
+        run: |
+          flutter --version
+          xcodebuild -version
+          pod --version
+
+      - name: Fetch Dependencies
+        run: flutter pub get
+
+      - name: Install CocoaPods Pods
+        run: |
+          cd ios
+          pod install --repo-update
+          cd ..
+
+      - name: Build iOS (Unsigned IPA)
+        run: |
+          flutter build ios --release --no-codesign
+          mkdir -p build/ios/iphoneos/Payload
+          cp -r build/ios/iphoneos/Runner.app build/ios/iphoneos/Payload/
+          cd build/ios/iphoneos
+          zip -r oggauer-gemeindetrommler.ipa Payload
+
+      - name: Upload IPA Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: oggauer-gemeindetrommler-ios
+          path: build/ios/iphoneos/oggauer-gemeindetrommler.ipa
+          retention-days: 7
