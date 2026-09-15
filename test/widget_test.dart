@@ -125,7 +125,7 @@ void main() {
       expect(allowedStatuses.contains('Erledigt'), isTrue);
       expect(allowedStatuses.contains('Unbekannt'), isFalse);
 
-      final messageMap = {
+      const messageMap = {
         'subject': 'Straßenbeleuchtung kaputt',
         'message': 'Vor der Schule ist es dunkel.',
         'senderName': 'Max Mustermann',
@@ -143,11 +143,11 @@ void main() {
     test('validates user profile normalization and admin lookup', () {
       String normalizeEmail(String email) => email.trim().toLowerCase();
 
-      final rawEmail = '  Admin.Test@Oggau.at  ';
+      const rawEmail = '  Admin.Test@Oggau.at  ';
       expect(normalizeEmail(rawEmail), 'admin.test@oggau.at');
 
-      final adminUids = {'uid_123', 'uid_456'};
-      final adminEmails = {'admin.test@oggau.at', 'buergermeister@oggau.at'};
+      const adminUids = {'uid_123', 'uid_456'};
+      const adminEmails = {'admin.test@oggau.at', 'buergermeister@oggau.at'};
 
       bool isUserAdmin(String uid, String email) {
         return adminUids.contains(uid) || adminEmails.contains(normalizeEmail(email));
