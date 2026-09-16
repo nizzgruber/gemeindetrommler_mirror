@@ -33,6 +33,8 @@ jobs:
       options: --privileged
     steps:
       - name: Switch Flutter SDK to pinned version
+        # act_runner defaults to `sh -e` (dash); bash is needed for `pipefail`.
+        shell: bash
         run: |
           set -euo pipefail
           FLUTTER_ROOT="${FLUTTER_ROOT:-/sdks/flutter}"
