@@ -17,6 +17,9 @@ on:
 env:
   # Keep in sync with .github/workflows/build-ios.yaml and pubspec.yaml (environment).
   FLUTTER_VERSION: '3.47.4'
+  # Static qemu-x86_64 for the ARM64 runner (Debian trixie `qemu-user`, see below).
+  QEMU_DEB_VERSION: '10.0.13+ds-0+deb13u1'
+  QEMU_DEB_SHA1: '02b553a4532192bc999d15408d1e56d7b254906f'
 
 jobs:
   build-android:
@@ -74,7 +77,22 @@ jobs:
             export QEMU_LD_PREFIX=/usr/x86_64-linux-gnu
             echo "QEMU_LD_PREFIX=/usr/x86_64-linux-gnu" >> "$GITHUB_ENV"
 
-            QEMU_BIN=$(command -v qemu-x86_64-static || command -v qemu-x86_64)
+            # Ubuntu 24.04 ships QEMU 8.2.2, whose x86_64 user-mode emulation dies with
+            # "QEMU internal SIGSEGV {code=MAPERR, addr=0x20}" as soon as the guest calls
+            # pthread_getattr_np() - which Dart's gen_snapshot does since Flutter 3.4x
+            # (https://gitlab.com/qemu-project/qemu/-/issues/2170, fixed in 8.2.3/9.0).
+            # Replace it with the static binary from Debian trixie's qemu-user package.
+            QEMU_DEB="qemu-user_${QEMU_DEB_VERSION}_arm64.deb"
+            curl -fsSL -o /tmp/qemu-user.deb "https://deb.debian.org/debian/pool/main/q/qemu/${QEMU_DEB}" ||
+              curl -fsSL -o /tmp/qemu-user.deb "https://snapshot.debian.org/file/${QEMU_DEB_SHA1}"
+            echo "${QEMU_DEB_SHA1}  /tmp/qemu-user.deb" | sha1sum -c -
+            dpkg-deb -x /tmp/qemu-user.deb /tmp/qemu-user
+            install -m 0755 /tmp/qemu-user/usr/bin/qemu-x86_64 /usr/bin/qemu-x86_64-static
+            rm -rf /tmp/qemu-user /tmp/qemu-user.deb
+            /usr/bin/qemu-x86_64-static --version | head -n 1
+
+            # Must match the path hard-coded in scripts/ci/qemu_intercept.c.
+            QEMU_BIN=/usr/bin/qemu-x86_64-static
 
             # Dummy fallbacks for FEX binaries/sockets
             for fex in /usr/bin/FEXInterpreter /usr/bin/FEX /usr/local/bin/FEXInterpreter /usr/bin/FEXServer /usr/local/bin/FEXServer; do
@@ -88,7 +106,7 @@ jobs:
             for dir in "${FLUTTER_ROOT:-/sdks/flutter}"/bin/cache/artifacts/engine/android-*; do
               if [ -d "$dir/linux-x64" ] && [ ! -x "$dir/linux-arm64/gen_snapshot" ]; then
                 mkdir -p "$dir/linux-arm64"
-                printf '#!/bin/sh\nSCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"\nexec %s -L /usr/x86_64-linux-gnu "$SCRIPT_DIR/../linux-x64/gen_snapshot" "$@"\n' "$QEMU_BIN" > "$dir/linux-arm64/gen_snapshot"
+                printf '#!/bin/sh\nSCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"\nexec env -u LD_PRELOAD %s -L /usr/x86_64-linux-gnu "$SCRIPT_DIR/../linux-x64/gen_snapshot" "$@"\n' "$QEMU_BIN" > "$dir/linux-arm64/gen_snapshot"
                 chmod +x "$dir/linux-arm64/gen_snapshot"
                 echo "Configured gen_snapshot wrapper for $(basename "$dir")"
               fi
@@ -130,18 +148,10 @@ jobs:
           flutter test
 
       - name: Build Universal Release APK
-        run: |
-          flutter build apk --release || {
-            echo "Checking if APK was built despite path mismatch..."
-            find build android -type f -name "*release*.apk" 2>/dev/null
-          }
+        run: flutter build apk --release
 
       - name: Build Split-per-ABI Release APKs
-        run: |
-          flutter build apk --release --split-per-abi || {
-            echo "Checking if split APKs were built despite path mismatch..."
-            find build android -type f -name "*release*.apk" 2>/dev/null
-          }
+        run: flutter build apk --release --split-per-abi
 
       - name: Organize Artifacts
         run: |
@@ -161,8 +171,12 @@ jobs:
               *x86_64*) cp "$apk" release-apks/oggauer-gemeindetrommler-x86_64.apk ;;
             esac
           done
-          echo "=== Generated All 4 APK Artifacts ==="
+          echo "=== Generated APK Artifacts ==="
           ls -lah release-apks/
+          if [ "$(ls release-apks/*.apk 2>/dev/null | wc -l)" -ne 4 ]; then
+            echo "::error::Expected 4 APKs in release-apks/, the build did not produce all artifacts"
+            exit 1
+          fi
 
       - name: Upload Universal APK
         uses: actions/upload-artifact@v3
@@ -170,6 +184,7 @@ jobs:
           name: oggauer-gemeindetrommler-universal
           path: release-apks/oggauer-gemeindetrommler-universal.apk
           retention-days: 7
+          if-no-files-found: error
 
       - name: Upload ARM64 APK
         uses: actions/upload-artifact@v3
@@ -177,6 +192,7 @@ jobs:
           name: oggauer-gemeindetrommler-arm64-v8a
           path: release-apks/oggauer-gemeindetrommler-arm64-v8a.apk
           retention-days: 7
+          if-no-files-found: error
 
       - name: Upload ARMv7 APK
         uses: actions/upload-artifact@v3
@@ -184,6 +200,7 @@ jobs:
           name: oggauer-gemeindetrommler-armeabi-v7a
           path: release-apks/oggauer-gemeindetrommler-armeabi-v7a.apk
           retention-days: 7
+          if-no-files-found: error
 
       - name: Upload x86_64 APK
         uses: actions/upload-artifact@v3
@@ -191,6 +208,7 @@ jobs:
           name: oggauer-gemeindetrommler-x86_64
           path: release-apks/oggauer-gemeindetrommler-x86_64.apk
           retention-days: 7
+          if-no-files-found: error
 
       - name: Publish Direct APKs to Gitea Releases
         continue-on-error: true
