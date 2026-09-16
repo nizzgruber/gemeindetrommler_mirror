@@ -64,7 +64,7 @@ jobs:
           # On Linux ARM64, Flutter engine and Android AAPT2 need x86_64 emulation via QEMU.
           if [ "$ARCH" = "aarch64" ] || [ "$ARCH" = "arm64" ]; then
             echo "Setting up ARM64 Flutter environment & QEMU binfmt emulation..."
-            apt-get update -qq && apt-get install -y -qq qemu-user-static binfmt-support libc6-amd64-cross libstdc++6-amd64-cross gcc
+            apt-get update -qq && apt-get install -y -qq qemu-user-static binfmt-support libc6-amd64-cross libstdc++6-amd64-cross gcc llvm
 
             # Setup x86_64 dynamic libraries & prefix for QEMU emulation
             mkdir -p /etc/qemu-binfmt
@@ -111,6 +111,21 @@ jobs:
                 echo "Configured gen_snapshot wrapper for $(basename "$dir")"
               fi
             done
+
+            # AGP strips libflutter.so/libapp.so with the NDK's llvm-strip; unstripped they
+            # are ~15x larger (165 MB instead of 12 MB per ABI). The NDK's x86_64 llvm-strip
+            # cannot run under QEMU (needs libz.so.1 etc. in the cross sysroot), so install
+            # the NDK Flutter expects up front and swap in Ubuntu's native arm64 llvm-strip.
+            NDK_VERSION="$(sed -nE 's/.*ndkVersion: String = "([^"]+)".*/\1/p' "${FLUTTER_ROOT:-/sdks/flutter}/packages/flutter_tools/gradle/src/main/kotlin/FlutterExtension.kt")"
+            [ -n "$NDK_VERSION" ] || { echo "::error::Could not determine Flutter's NDK version"; exit 1; }
+            echo "Installing NDK $NDK_VERSION ..."
+            yes | sdkmanager --install "ndk;${NDK_VERSION}" > /dev/null
+            NDK_BIN="${ANDROID_HOME:-/opt/android-sdk-linux}/ndk/${NDK_VERSION}/toolchains/llvm/prebuilt/linux-x86_64/bin"
+            for tool in llvm-strip llvm-objcopy; do
+              mv "$NDK_BIN/$tool" "$NDK_BIN/$tool.x86_64"
+              ln -s "$(command -v "$tool")" "$NDK_BIN/$tool"
+            done
+            "$NDK_BIN/llvm-strip" --version | head -n 2
           fi
 
       - name: Checkout Repository
