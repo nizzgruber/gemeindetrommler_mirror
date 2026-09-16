@@ -14,6 +14,10 @@ on:
       - master
   workflow_dispatch:
 
+env:
+  # Keep in sync with .github/workflows/build-ios.yaml and pubspec.yaml (environment).
+  FLUTTER_VERSION: '3.47.4'
+
 jobs:
   build-android:
     name: Build Release APKs
@@ -21,17 +25,36 @@ jobs:
     permissions:
       contents: write
     container:
-      image: ghcr.io/cirruslabs/flutter:3.24.5
+      # Cirrus Labs stopped publishing Flutter images in May 2026 (last tag: 3.44.0,
+      # multi-arch amd64/arm64, Ubuntu 24.04, OpenJDK 21, Android SDK 36). The image is
+      # only used for its JDK + Android SDK; the bundled Flutter SDK is switched to
+      # FLUTTER_VERSION in the first step.
+      image: ghcr.io/cirruslabs/flutter:3.44.0
       options: --privileged
     steps:
+      - name: Switch Flutter SDK to pinned version
+        run: |
+          set -euo pipefail
+          FLUTTER_ROOT="${FLUTTER_ROOT:-/sdks/flutter}"
+          git config --global --add safe.directory "$FLUTTER_ROOT"
+          git config --global --add safe.directory '*'
+          CURRENT="$(git -C "$FLUTTER_ROOT" describe --tags --exact-match 2>/dev/null || true)"
+          if [ "$CURRENT" != "$FLUTTER_VERSION" ]; then
+            echo "Switching Flutter SDK from '${CURRENT:-unknown}' to '$FLUTTER_VERSION'"
+            git -C "$FLUTTER_ROOT" fetch --depth 1 origin "refs/tags/${FLUTTER_VERSION}:refs/tags/${FLUTTER_VERSION}"
+            git -C "$FLUTTER_ROOT" checkout -q "$FLUTTER_VERSION"
+            # Drop the cache of the previous version; the Dart SDK and the engine
+            # artifacts for the new version are downloaded on first use.
+            rm -rf "$FLUTTER_ROOT/bin/cache"
+          fi
+          flutter --version
+
       - name: Setup Node.js 20 & ARM64 Flutter Engine
         run: |
           ARCH=$(uname -m)
           if [ "$ARCH" = "aarch64" ] || [ "$ARCH" = "arm64" ]; then NODE_ARCH="arm64"; else NODE_ARCH="x64"; fi
           curl -fsSL "https://nodejs.org/dist/v20.18.0/node-v20.18.0-linux-${NODE_ARCH}.tar.gz" | tar -xzf - -C /usr/local --strip-components=1
           node --version
-          git config --global --add safe.directory "$GITHUB_WORKSPACE"
-          git config --global --add safe.directory '*'
 
           # On Linux ARM64, Flutter engine and Android AAPT2 need x86_64 emulation via QEMU.
           if [ "$ARCH" = "aarch64" ] || [ "$ARCH" = "arm64" ]; then
@@ -58,8 +81,10 @@ jobs:
             done
 
             flutter precache --android
-            for dir in /sdks/flutter/bin/cache/artifacts/engine/android-*; do
-              if [ -d "$dir/linux-x64" ]; then
+            # Flutter (still) only ships an x86_64 gen_snapshot for Linux hosts; wrap it
+            # with QEMU under the linux-arm64 path the tool expects.
+            for dir in "${FLUTTER_ROOT:-/sdks/flutter}"/bin/cache/artifacts/engine/android-*; do
+              if [ -d "$dir/linux-x64" ] && [ ! -x "$dir/linux-arm64/gen_snapshot" ]; then
                 mkdir -p "$dir/linux-arm64"
                 printf '#!/bin/sh\nSCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"\nexec %s -L /usr/x86_64-linux-gnu "$SCRIPT_DIR/../linux-x64/gen_snapshot" "$@"\n' "$QEMU_BIN" > "$dir/linux-arm64/gen_snapshot"
                 chmod +x "$dir/linux-arm64/gen_snapshot"

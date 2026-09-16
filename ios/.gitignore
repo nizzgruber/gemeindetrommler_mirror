@@ -32,3 +32,8 @@ Runner/GeneratedPluginRegistrant.*
 !default.mode2v3
 !default.pbxuser
 !default.perspectivev3
+
+# Podfile.lock is intentionally not tracked: development happens on Windows (no
+# CocoaPods), and the iOS CI always runs a fresh `pod install`. A stale lock file
+# only causes "sandbox is not in sync" / incompatible pod version errors.
+Podfile.lock

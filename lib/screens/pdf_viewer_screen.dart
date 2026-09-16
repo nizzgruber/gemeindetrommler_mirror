@@ -34,14 +34,14 @@ class _PdfViewerScreenState extends State<PdfViewerScreen> {
   void _zoomIn() {
     setState(() {
       _zoomLevel = (_zoomLevel * 1.3).clamp(0.8, 5.0);
-      _transformationController.value = Matrix4.identity()..scale(_zoomLevel);
+      _transformationController.value = Matrix4.diagonal3Values(_zoomLevel, _zoomLevel, _zoomLevel);
     });
   }
 
   void _zoomOut() {
     setState(() {
       _zoomLevel = (_zoomLevel / 1.3).clamp(0.8, 5.0);
-      _transformationController.value = Matrix4.identity()..scale(_zoomLevel);
+      _transformationController.value = Matrix4.diagonal3Values(_zoomLevel, _zoomLevel, _zoomLevel);
     });
   }
 
@@ -196,7 +196,7 @@ class _PdfViewerScreenState extends State<PdfViewerScreen> {
                               borderRadius: BorderRadius.circular(4),
                               boxShadow: [
                                 BoxShadow(
-                                  color: Colors.black.withOpacity(0.15),
+                                  color: Colors.black.withValues(alpha: 0.15),
                                   blurRadius: 10,
                                   offset: const Offset(0, 3),
                                 ),
@@ -235,7 +235,7 @@ class _PdfViewerScreenState extends State<PdfViewerScreen> {
               elevation: 4,
               shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(24)),
-              color: Colors.white.withOpacity(0.92),
+              color: Colors.white.withValues(alpha: 0.92),
               child: Padding(
                 padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 2),
                 child: Column(

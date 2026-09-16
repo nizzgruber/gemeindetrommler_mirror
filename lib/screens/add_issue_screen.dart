@@ -215,7 +215,7 @@ class _AddIssueScreenState extends State<AddIssueScreen> {
               ),
               const SizedBox(height: 16),
               DropdownButtonFormField<String>(
-                value: _selectedStreet,
+                initialValue: _selectedStreet,
                 decoration: const InputDecoration(
                   labelText: 'Straße / Örtlichkeit *',
                   border: OutlineInputBorder(),
@@ -232,7 +232,7 @@ class _AddIssueScreenState extends State<AddIssueScreen> {
               ),
               const SizedBox(height: 16),
               DropdownButtonFormField<String>(
-                value: _selectedCategory,
+                initialValue: _selectedCategory,
                 decoration: const InputDecoration(
                   labelText: 'Grundlage / Kategorie *',
                   border: OutlineInputBorder(),

@@ -118,8 +118,8 @@ class FirestoreService {
           'firstName': firstName,
         if (lastName != null && lastName.isNotEmpty)
           'lastName': lastName,
-        if (emailVerified != null) 'emailVerified': emailVerified,
-        if (isAdmin != null) 'isAdmin': isAdmin,
+        'emailVerified': ?emailVerified,
+        'isAdmin': ?isAdmin,
       };
 
       if (!doc.exists) {

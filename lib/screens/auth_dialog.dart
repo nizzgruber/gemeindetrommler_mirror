@@ -291,7 +291,7 @@ class _AuthDialogState extends State<AuthDialog>
                         child: Image.asset(
                           'assets/images/logo.png',
                           height: 28,
-                          errorBuilder: (_, __, ___) => const Icon(
+                          errorBuilder: (_, _, _) => const Icon(
                             Icons.campaign,
                             color: Colors.blue,
                           ),

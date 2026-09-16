@@ -20,11 +20,14 @@ pluginManagement {
     }
 }
 
+// Versions follow the Flutter 3.47 project template (see
+// packages/flutter_tools/lib/src/android/gradle_utils.dart in the Flutter SDK).
+// Flutter refuses to build with AGP < 8.11.1, Kotlin < 2.2.20 or Gradle < 8.14.
 plugins {
     id "dev.flutter.flutter-plugin-loader" version "1.0.0"
-    id "com.android.application" version "8.5.2" apply false
-    id "org.jetbrains.kotlin.android" version "1.9.22" apply false
-    id "com.google.gms.google-services" version "4.4.1" apply false
+    id "com.android.application" version "9.1.0" apply false
+    id "org.jetbrains.kotlin.android" version "2.4.0" apply false
+    id "com.google.gms.google-services" version "4.5.0" apply false
 }
 
 include ":app"

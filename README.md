@@ -104,7 +104,7 @@ Die Sicherheit und Integrität der Bürgerdaten wird durch ein mehrstufiges Sich
 ## 🏗️ Technische Architektur & Tech-Stack
 
 ### Verwendete Technologien:
-- **Framework:** [Flutter](https://flutter.dev) (Dart SDK `>=3.0.0`)
+- **Framework:** [Flutter](https://flutter.dev) `3.47.x` (Dart SDK `>=3.11`), Android `minSdk 23`, iOS `>= 15.0`
 - **Backend & Cloud Services (Google Firebase):**
   - `firebase_core` (Initialisierung)
   - `firebase_auth` (E-Mail & Passwort Authentifizierung, Gast-Modus)
@@ -117,7 +117,7 @@ Die Sicherheit und Integrität der Bürgerdaten wird durch ein mehrstufiges Sich
   - `pdf`, `printing` (PDF-Generierung, In-App Vorschau & Druck)
   - `url_launcher` (System-Browser, Telefon- und E-Mail-Intents)
 - **Bildverarbeitung:**
-  - `image_picker`, `image_cropper`, `cached_network_image`, `image`
+  - `image_picker`, `cached_network_image`, `image`
 - **State Management:**
   - `provider` (`MultiProvider` Architektur)
 
@@ -150,25 +150,34 @@ lib/
 
 ---
 
-## 🤖 CI/CD Pipeline (Gitea Actions)
+## 🤖 CI/CD Pipeline
 
-Die App verfügt über eine vollautomatische Build-Pipeline für **Gitea Actions** (`.gitea/workflows/build-apk.yaml`):
+Die Flutter-Version ist zentral gepinnt (`FLUTTER_VERSION` in beiden Workflows, `environment` in `pubspec.yaml`) und muss bei einem Upgrade an allen drei Stellen gemeinsam angehoben werden.
 
-- **Build-Container:** `ghcr.io/cirruslabs/flutter:3.24.5` mit vorkonfiguriertem Android SDK und Java 17.
+### Android (Gitea Actions, `.gitea/workflows/build-apk.yaml`)
+
+- **Build-Container:** `ghcr.io/cirruslabs/flutter:3.44.0` (letztes von Cirrus Labs veröffentlichtes Image, liefert JDK 21 + Android SDK 36). Das darin enthaltene Flutter-SDK wird im ersten Schritt per `git checkout` auf `FLUTTER_VERSION` umgeschaltet.
+- **Runner:** Oracle Cloud ARM64 – x86_64-Werkzeuge (AAPT2, `gen_snapshot`) laufen über QEMU (`scripts/ci/qemu_intercept.c`).
 - **Automatisierte Qualitätskontrolle:** Führt vor jedem Build `flutter analyze` und `flutter test` aus.
 - **Erzeugte APK-Pakete:**
   1. `oggauer-gemeindetrommler-universal-release.apk` (Universelle Version für alle Android-Smartphones).
   2. `oggauer-gemeindetrommler-arm64-v8a.apk` (Optimiert für moderne 64-Bit Geräte).
   3. `oggauer-gemeindetrommler-armeabi-v7a.apk` (Für ältere 32-Bit Geräte).
   4. `oggauer-gemeindetrommler-x86_64.apk` (Für Emulatoren).
-- **Download:** Die gebauten APKs stehen nach jedem Durchlauf als ZIP-Artefakt (`oggauer-gemeindetrommler-apks`) im Gitea-Reiter **Aktionen** zum Download bereit.
+- **Download:** Die gebauten APKs stehen nach jedem Durchlauf als Artefakte im Gitea-Reiter **Aktionen** sowie im Release `latest` zum Download bereit.
+
+### iOS (GitHub Actions, `.github/workflows/build-ios.yaml`)
+
+- **Runner:** `macos-26` (Xcode 26), Flutter über `subosito/flutter-action`.
+- **Plugins:** ausschließlich über CocoaPods (Swift Package Manager ist im Workflow bewusst deaktiviert); `ios/Podfile.lock` wird nicht versioniert, `pod install` läuft bei jedem Build frisch.
+- **Ergebnis:** unsigniertes IPA (`flutter build ios --release --no-codesign`) als Artefakt `oggauer-gemeindetrommler-ios` – für die Verteilung muss es nachträglich signiert werden.
 
 ---
 
 ## 🛠️ Einrichtung & Lokale Ausführung
 
 ### Voraussetzungen:
-- **Flutter SDK:** `>= 3.19.x`
+- **Flutter SDK:** `3.47.x` (stable) – identisch zur in den Workflows gepinnten Version
 - **Dart SDK:** Im Flutter SDK enthalten
 - **Android Studio / VS Code / Xcode** mit entsprechenden Emulatoren oder Testgeräten
 

@@ -10,49 +10,63 @@ on:
       - 'latest'
   workflow_dispatch:
 
+# Only the newest push per branch/tag is built.
+concurrency:
+  group: build-ios-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  # Keep in sync with .gitea/workflows/build-apk.yaml and pubspec.yaml (environment).
+  FLUTTER_VERSION: '3.47.4'
+
 jobs:
   build-ios:
     name: Build iOS IPA
-    runs-on: macos-15
+    # macOS 26 (arm64) ships Xcode 26 by default; Flutter 3.47 needs Xcode >= 16.
+    runs-on: macos-26
+    timeout-minutes: 60
     if: github.server_url == 'https://github.com'
 
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Select Xcode Version
-        run: |
-          sudo xcode-select -s /Applications/Xcode.app/Contents/Developer
-          xcodebuild -version
-
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.24.5'
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
           cache: true
+
+      - name: Configure Flutter
+        run: |
+          # All plugins of this project are integrated via CocoaPods. Turning
+          # off the (default-on) Swift Package Manager integration keeps the
+          # build on that single, deterministic path.
+          flutter config --no-enable-swift-package-manager
 
       - name: Inspect Environment
         run: |
-          flutter --version
+          xcodebuild -version
           pod --version
+          flutter --version
+          flutter doctor -v
 
       - name: Fetch Flutter Dependencies
         run: flutter pub get
 
-      - name: Clean Stale Podfile Lock
-        run: |
-          rm -rf ios/Pods ios/Podfile.lock
+      - name: Build iOS (Unsigned)
+        run: flutter build ios --release --no-codesign
 
-      - name: Build iOS (Unsigned IPA)
+      - name: Package IPA
         run: |
-          flutter build ios --release --no-codesign
-
-          rm -rf build/ios/iphoneos/Payload build/ios/iphoneos/oggauer-gemeindetrommler.ipa
-          mkdir -p build/ios/iphoneos/Payload
-          cp -r build/ios/iphoneos/Runner.app build/ios/iphoneos/Payload/
+          set -euo pipefail
           cd build/ios/iphoneos
-          zip -r oggauer-gemeindetrommler.ipa Payload
-
+          rm -rf Payload oggauer-gemeindetrommler.ipa
+          mkdir Payload
+          cp -R Runner.app Payload/
+          zip -qry oggauer-gemeindetrommler.ipa Payload
+          ls -lh oggauer-gemeindetrommler.ipa
 
       - name: Upload IPA Artifact
         uses: actions/upload-artifact@v4
@@ -60,3 +74,16 @@ jobs:
           name: oggauer-gemeindetrommler-ios
           path: build/ios/iphoneos/oggauer-gemeindetrommler.ipa
           retention-days: 7
+          if-no-files-found: error
+
+      - name: Upload Xcode Logs (on failure)
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-build-logs
+          path: |
+            ~/Library/Logs/DiagnosticReports/*.ips
+            build/ios/**/*.log
+            ios/Podfile.lock
+          if-no-files-found: ignore
+          retention-days: 3

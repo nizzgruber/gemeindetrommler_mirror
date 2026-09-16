@@ -284,7 +284,7 @@ class _AdminMessagesScreenState extends State<AdminMessagesScreen> {
     return Expanded(
       child: OutlinedButton(
         style: OutlinedButton.styleFrom(
-          backgroundColor: isCurrent ? color.withOpacity(0.15) : null,
+          backgroundColor: isCurrent ? color.withValues(alpha: 0.15) : null,
           side: BorderSide(
             color: isCurrent ? color : Colors.grey.shade300,
             width: isCurrent ? 2 : 1,
@@ -332,7 +332,7 @@ class _AdminMessagesScreenState extends State<AdminMessagesScreen> {
       decoration: BoxDecoration(
         color: bg,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: fg.withOpacity(0.3)),
+        border: Border.all(color: fg.withValues(alpha: 0.3)),
       ),
       child: Text(
         status,
