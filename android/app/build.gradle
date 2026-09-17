@@ -34,23 +34,26 @@ android {
     buildTypes {
         release {
             // TODO: Add your own signing config for the release build.
+            // Signing with the debug keys for now, so `flutter run --release` works.
             signingConfig signingConfigs.debug
         }
     }
 
-    splits {
-        abi {
-            enable true
-            reset()
-            include "arm64-v8a", "armeabi-v7a", "x86_64"
-            universalApk true
+    // `flutter build apk --split-per-abi` makes the Flutter Gradle plugin enable ABI
+    // splits for the requested target platforms but switch the universal APK off.
+    // Turn it back on so a single Gradle run yields the per-ABI APKs *and* the
+    // universal one (the plugin copies all of them to build/app/outputs/flutter-apk/,
+    // the universal one as app-release.apk). Only when splitting: for plain builds
+    // the plugin sets ndk.abiFilters instead, which AGP does not allow together
+    // with splits. Do not use AGP's `packageReleaseUniversalApk` task for this -
+    // it derives the universal APK from an App Bundle, and bundles cannot be
+    // built while ABI splits are enabled.
+    if (project.findProperty("split-per-abi")?.toString()?.toBoolean()) {
+        splits {
+            abi {
+                universalApk true
+            }
         }
-    }
-}
-
-afterEvaluate {
-    tasks.named('assembleRelease').configure {
-        dependsOn 'packageReleaseUniversalApk'
     }
 }
 
