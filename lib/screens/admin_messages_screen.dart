@@ -89,14 +89,20 @@ class _AdminMessagesScreenState extends State<AdminMessagesScreen> {
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setModalState) => Padding(
-          padding: EdgeInsets.only(
-            left: 20,
-            right: 20,
-            top: 20,
-            bottom: MediaQuery.of(ctx).viewInsets.bottom + 20,
-          ),
-          child: SingleChildScrollView(
+        builder: (ctx, setModalState) {
+          final bottomInset = MediaQuery.viewPaddingOf(ctx).bottom > 0
+              ? MediaQuery.viewPaddingOf(ctx).bottom
+              : MediaQuery.paddingOf(ctx).bottom;
+          final keyboardInset = MediaQuery.viewInsetsOf(ctx).bottom;
+
+          return Padding(
+            padding: EdgeInsets.only(
+              left: 20,
+              right: 20,
+              top: 20,
+              bottom: bottomInset + keyboardInset + 20,
+            ),
+            child: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -269,10 +275,11 @@ class _AdminMessagesScreenState extends State<AdminMessagesScreen> {
               ],
             ),
           ),
-        ),
-      ),
-    );
-  }
+        );
+      },
+    ),
+  );
+}
 
   Widget _buildStatusButton(
     String docId,
@@ -494,8 +501,11 @@ class _AdminMessagesScreenState extends State<AdminMessagesScreen> {
  );
  }
 
- return ListView.separated(
- itemCount: filteredDocs.length,
+                return ListView.separated(
+                  padding: EdgeInsets.only(
+                    bottom: MediaQuery.paddingOf(context).bottom + 20,
+                  ),
+                  itemCount: filteredDocs.length,
  separatorBuilder: (ctx, i) => const Divider(height: 1),
  itemBuilder: (context, index) {
  final doc = filteredDocs[index];

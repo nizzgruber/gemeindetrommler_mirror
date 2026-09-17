@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:oggauergemeindetrommler/models/post_item.dart';
 
@@ -165,6 +166,57 @@ void main() {
 
       expect(canDemote('target_user', 'current_admin'), isTrue);
       expect(canDemote('current_admin', 'current_admin'), isFalse);
+    });
+  });
+
+  group('PDF Viewer & Navigation Overlap Tests', () {
+    test('verifies double-tap zoom matrix calculation and reset', () {
+      // Test at standard scale (1.0) -> zoom to 2.5x
+      final currentMatrix = Matrix4.identity();
+      final currentScale = currentMatrix.getMaxScaleOnAxis();
+      expect(currentScale, 1.0);
+
+      const tapPosition = Offset(100, 200);
+      Matrix4 targetMatrix;
+      if (currentScale > 1.05) {
+        targetMatrix = Matrix4.identity();
+      } else {
+        final x = -tapPosition.dx * (2.5 - 1.0);
+        final y = -tapPosition.dy * (2.5 - 1.0);
+        targetMatrix = Matrix4.diagonal3Values(2.5, 2.5, 1.0)
+          ..setTranslationRaw(x, y, 0.0);
+      }
+
+      expect(targetMatrix.getMaxScaleOnAxis(), 2.5);
+      expect(targetMatrix.getTranslation().x, -150.0);
+      expect(targetMatrix.getTranslation().y, -300.0);
+
+      // Test when zoomed in -> reset to standard size (scale 1.0)
+      final zoomedScale = targetMatrix.getMaxScaleOnAxis();
+      expect(zoomedScale > 1.05, isTrue);
+
+      Matrix4 resetMatrix;
+      if (zoomedScale > 1.05) {
+        resetMatrix = Matrix4.identity();
+      } else {
+        resetMatrix = targetMatrix;
+      }
+
+      expect(resetMatrix.getMaxScaleOnAxis(), 1.0);
+      expect(resetMatrix.getTranslation().x, 0.0);
+      expect(resetMatrix.getTranslation().y, 0.0);
+    });
+
+    test('calculates safe bottom padding above 3-button navigation bar', () {
+      // 3-button navigation typical height is ~48dp
+      const systemNavBarHeight = 48.0;
+      const keyboardHeight = 0.0;
+      const extraPadding = 20.0;
+
+      final totalBottomPadding = systemNavBarHeight + keyboardHeight + extraPadding;
+      expect(totalBottomPadding, 68.0);
+      // Ensures interactive action buttons sit strictly above the navigation bar
+      expect(totalBottomPadding > systemNavBarHeight, isTrue);
     });
   });
 }

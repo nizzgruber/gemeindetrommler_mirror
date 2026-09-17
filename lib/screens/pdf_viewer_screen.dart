@@ -19,37 +19,62 @@ class PdfViewerScreen extends StatefulWidget {
   State<PdfViewerScreen> createState() => _PdfViewerScreenState();
 }
 
-class _PdfViewerScreenState extends State<PdfViewerScreen> {
+class _PdfViewerScreenState extends State<PdfViewerScreen>
+    with SingleTickerProviderStateMixin {
   final TransformationController _transformationController =
       TransformationController();
-  double _zoomLevel = 1.0;
+  late AnimationController _animationController;
+  Animation<Matrix4>? _zoomAnimation;
+  TapDownDetails? _doubleTapDetails;
   Uint8List? _cachedBytes;
 
   @override
+  void initState() {
+    super.initState();
+    _animationController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 250),
+    )..addListener(() {
+        if (_zoomAnimation != null) {
+          _transformationController.value = _zoomAnimation!.value;
+        }
+      });
+  }
+
+  @override
   void dispose() {
+    _animationController.dispose();
     _transformationController.dispose();
     super.dispose();
   }
 
-  void _zoomIn() {
-    setState(() {
-      _zoomLevel = (_zoomLevel * 1.3).clamp(0.8, 5.0);
-      _transformationController.value = Matrix4.diagonal3Values(_zoomLevel, _zoomLevel, _zoomLevel);
-    });
-  }
+  void _handleDoubleTap() {
+    if (_animationController.isAnimating) return;
 
-  void _zoomOut() {
-    setState(() {
-      _zoomLevel = (_zoomLevel / 1.3).clamp(0.8, 5.0);
-      _transformationController.value = Matrix4.diagonal3Values(_zoomLevel, _zoomLevel, _zoomLevel);
-    });
-  }
+    final currentMatrix = _transformationController.value;
+    final currentScale = currentMatrix.getMaxScaleOnAxis();
 
-  void _resetZoom() {
-    setState(() {
-      _zoomLevel = 1.0;
-      _transformationController.value = Matrix4.identity();
-    });
+    Matrix4 targetMatrix;
+    if (currentScale > 1.05) {
+      // Zoomed in -> smoothly animate back to standard size (scale 1.0)
+      targetMatrix = Matrix4.identity();
+    } else {
+      // At standard size -> zoom in to tapped point (2.5x)
+      final position = _doubleTapDetails?.localPosition ?? Offset.zero;
+      final x = -position.dx * (2.5 - 1.0);
+      final y = -position.dy * (2.5 - 1.0);
+      targetMatrix = Matrix4.diagonal3Values(2.5, 2.5, 1.0)
+        ..setTranslationRaw(x, y, 0.0);
+    }
+
+    _zoomAnimation = Matrix4Tween(
+      begin: currentMatrix,
+      end: targetMatrix,
+    ).animate(CurvedAnimation(
+      parent: _animationController,
+      curve: Curves.easeOutCubic,
+    ));
+    _animationController.forward(from: 0);
   }
 
   Future<void> _openExternal() async {
@@ -110,78 +135,74 @@ class _PdfViewerScreenState extends State<PdfViewerScreen> {
           ),
         ],
       ),
-      body: Stack(
-        children: [
-          PdfPreview.builder(
-            build: (PdfPageFormat format) async {
-              if (_cachedBytes != null) return _cachedBytes!;
-              final response = await http
-                  .get(Uri.parse(widget.pdfUrl))
-                  .timeout(const Duration(seconds: 15));
-              if (response.statusCode == 200) {
-                _cachedBytes = response.bodyBytes;
-                return response.bodyBytes;
-              }
-              throw Exception(
-                  'Fehler beim Abrufen der Datei (${response.statusCode})');
-            },
-            canChangeOrientation: false,
-            canChangePageFormat: false,
-            canDebug: false,
-            allowPrinting: false,
-            allowSharing: false,
-            useActions: false,
-            pdfFileName: '$safeTitle.pdf',
-            loadingWidget: const Center(
+      body: SafeArea(
+        top: false,
+        child: PdfPreview.builder(
+          build: (PdfPageFormat format) async {
+            if (_cachedBytes != null) return _cachedBytes!;
+            final response = await http
+                .get(Uri.parse(widget.pdfUrl))
+                .timeout(const Duration(seconds: 15));
+            if (response.statusCode == 200) {
+              _cachedBytes = response.bodyBytes;
+              return response.bodyBytes;
+            }
+            throw Exception(
+                'Fehler beim Abrufen der Datei (${response.statusCode})');
+          },
+          canChangeOrientation: false,
+          canChangePageFormat: false,
+          canDebug: false,
+          allowPrinting: false,
+          allowSharing: false,
+          useActions: false,
+          pdfFileName: '$safeTitle.pdf',
+          loadingWidget: const Center(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                CircularProgressIndicator(),
+                SizedBox(height: 16),
+                Text('Aussendung wird geladen...'),
+              ],
+            ),
+          ),
+          onError: (context, error) => Center(
+            child: Padding(
+              padding: const EdgeInsets.all(24.0),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  CircularProgressIndicator(),
-                  SizedBox(height: 16),
-                  Text('Aussendung wird geladen...'),
+                  const Icon(Icons.error_outline, color: Colors.red, size: 48),
+                  const SizedBox(height: 12),
+                  Text(
+                    'Fehler beim Laden des Dokuments: $error',
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(color: Colors.red),
+                  ),
+                  const SizedBox(height: 16),
+                  ElevatedButton.icon(
+                    onPressed: _openExternal,
+                    icon: const Icon(Icons.open_in_browser),
+                    label: const Text('Direkt im Browser öffnen'),
+                  ),
                 ],
               ),
             ),
-            onError: (context, error) => Center(
-              child: Padding(
-                padding: const EdgeInsets.all(24.0),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Icon(Icons.error_outline, color: Colors.red, size: 48),
-                    const SizedBox(height: 12),
-                    Text(
-                      'Fehler beim Laden des Dokuments: $error',
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(color: Colors.red),
-                    ),
-                    const SizedBox(height: 16),
-                    ElevatedButton.icon(
-                      onPressed: _openExternal,
-                      icon: const Icon(Icons.open_in_browser),
-                      label: const Text('Direkt im Browser öffnen'),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            pagesBuilder: (context, pages) {
-              return InteractiveViewer(
+          ),
+          pagesBuilder: (context, pages) {
+            return GestureDetector(
+              behavior: HitTestBehavior.translucent,
+              onDoubleTapDown: (details) => _doubleTapDetails = details,
+              onDoubleTap: _handleDoubleTap,
+              child: InteractiveViewer(
                 transformationController: _transformationController,
-                minScale: 0.8,
+                minScale: 1.0,
                 maxScale: 5.0,
                 panEnabled: true,
                 scaleEnabled: true,
-                onInteractionEnd: (details) {
-                  final scale =
-                      _transformationController.value.getMaxScaleOnAxis();
-                  if (scale != _zoomLevel) {
-                    setState(() {
-                      _zoomLevel = scale;
-                    });
-                  }
-                },
                 child: SingleChildScrollView(
+                  physics: const BouncingScrollPhysics(),
                   padding: const EdgeInsets.symmetric(
                       horizontal: 8.0, vertical: 16.0),
                   child: Center(
@@ -224,59 +245,10 @@ class _PdfViewerScreenState extends State<PdfViewerScreen> {
                     ),
                   ),
                 ),
-              );
-            },
-          ),
-          // Floating Zoom Controls Overlay
-          Positioned(
-            right: 16,
-            bottom: 24,
-            child: Card(
-              elevation: 4,
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(24)),
-              color: Colors.white.withValues(alpha: 0.92),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 2),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    IconButton(
-                      icon: const Icon(Icons.zoom_in, color: Colors.black87),
-                      tooltip: 'Vergrößern (+)',
-                      onPressed: _zoomIn,
-                    ),
-                    InkWell(
-                      onTap: _resetZoom,
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(
-                            vertical: 4, horizontal: 6),
-                        child: Text(
-                          '${(_zoomLevel * 100).round()}%',
-                          style: const TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.blue,
-                          ),
-                        ),
-                      ),
-                    ),
-                    IconButton(
-                      icon: const Icon(Icons.zoom_out, color: Colors.black87),
-                      tooltip: 'Verkleinern (-)',
-                      onPressed: _zoomOut,
-                    ),
-                    IconButton(
-                      icon: const Icon(Icons.restart_alt, size: 20, color: Colors.grey),
-                      tooltip: 'Zoom zurücksetzen (1:1)',
-                      onPressed: _resetZoom,
-                    ),
-                  ],
-                ),
               ),
-            ),
-          ),
-        ],
+            );
+          },
+        ),
       ),
     );
   }

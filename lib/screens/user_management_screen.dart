@@ -365,6 +365,9 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
                     }
 
                     return ListView.separated(
+                      padding: EdgeInsets.only(
+                        bottom: MediaQuery.paddingOf(context).bottom + 20,
+                      ),
                       itemCount: filteredUsers.length,
                       separatorBuilder: (ctx, i) => const Divider(height: 1),
                       itemBuilder: (context, index) {

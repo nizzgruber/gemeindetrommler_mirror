@@ -63,6 +63,7 @@ class _AddPostScreenState extends State<AddPostScreen> {
   void _showImageSourceModal() {
     showModalBottomSheet(
       context: context,
+      useSafeArea: true,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
@@ -155,7 +156,12 @@ class _AddPostScreenState extends State<AddPostScreen> {
         title: Text(widget.screenTitle),
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16.0),
+        padding: EdgeInsets.only(
+          left: 16.0,
+          right: 16.0,
+          top: 16.0,
+          bottom: MediaQuery.paddingOf(context).bottom + 24.0,
+        ),
         child: Form(
           key: _formKey,
           child: Column(
