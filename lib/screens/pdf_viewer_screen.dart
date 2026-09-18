@@ -61,8 +61,9 @@ class _PdfViewerScreenState extends State<PdfViewerScreen>
     } else {
       // At standard size -> zoom in to tapped point (2.5x)
       final position = _doubleTapDetails?.localPosition ?? Offset.zero;
-      final x = -position.dx * (2.5 - 1.0);
-      final y = -position.dy * (2.5 - 1.0);
+      final scenePoint = _transformationController.toScene(position);
+      final x = position.dx - scenePoint.dx * 2.5;
+      final y = position.dy - scenePoint.dy * 2.5;
       targetMatrix = Matrix4.diagonal3Values(2.5, 2.5, 1.0)
         ..setTranslationRaw(x, y, 0.0);
     }
@@ -205,7 +206,8 @@ class _PdfViewerScreenState extends State<PdfViewerScreen>
                     panEnabled: true,
                     scaleEnabled: true,
                     constrained: false,
-                    alignment: Alignment.topCenter,
+                    boundaryMargin: const EdgeInsets.symmetric(
+                        horizontal: 48, vertical: 80),
                     child: SizedBox(
                       width: viewportWidth,
                       child: Padding(

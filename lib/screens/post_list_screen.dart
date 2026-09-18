@@ -429,6 +429,8 @@ class _PostListScreenState extends State<PostListScreen> {
             final canEdit = !item.isAussendung && (isAuthor || auth.isAdmin);
             final formattedDate =
                 DateFormat('dd.MM.yyyy').format(item.createdDate);
+            final isIssue =
+                widget.collectionName == 'Issues' || item.street != null;
 
             Widget? leadingWidget;
             if (item.imageUrl.isNotEmpty) {
@@ -657,7 +659,64 @@ class _PostListScreenState extends State<PostListScreen> {
               subtitle: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  if (item.street != null && item.street!.isNotEmpty) ...[
+                  if (isIssue && item.status != null && item.status!.isNotEmpty) ...[
+                    const SizedBox(height: 3),
+                    Wrap(
+                      crossAxisAlignment: WrapCrossAlignment.center,
+                      spacing: 6,
+                      runSpacing: 4,
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: item.status == 'Erledigt'
+                                ? Colors.green.shade50
+                                : (item.status == 'In Bearbeitung'
+                                    ? Colors.blue.shade50
+                                    : Colors.orange.shade50),
+                            borderRadius: BorderRadius.circular(4),
+                            border: Border.all(
+                              color: item.status == 'Erledigt'
+                                  ? Colors.green.shade300
+                                  : (item.status == 'In Bearbeitung'
+                                      ? Colors.blue.shade300
+                                      : Colors.orange.shade300),
+                            ),
+                          ),
+                          child: Text(
+                            item.status!,
+                            style: TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                              color: item.status == 'Erledigt'
+                                  ? Colors.green.shade800
+                                  : (item.status == 'In Bearbeitung'
+                                      ? Colors.blue.shade800
+                                      : Colors.orange.shade900),
+                            ),
+                          ),
+                        ),
+                        if (item.street != null && item.street!.isNotEmpty)
+                          Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(Icons.location_on,
+                                  size: 12, color: Colors.redAccent),
+                              const SizedBox(width: 2),
+                              Text(
+                                item.street!,
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w500,
+                                  color: Colors.black87,
+                                ),
+                              ),
+                            ],
+                          ),
+                      ],
+                    ),
+                  ] else if (item.street != null && item.street!.isNotEmpty) ...[
                     const SizedBox(height: 2),
                     Row(
                       children: [

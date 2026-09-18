@@ -14,6 +14,7 @@ void main() {
         createdDate: now,
         street: 'Hauptstraße',
         category: 'Straßenbeleuchtung',
+        status: 'Gemeldet',
       );
 
       expect(item.id, 'test-123');
@@ -22,6 +23,46 @@ void main() {
       expect(item.category, 'Straßenbeleuchtung');
       expect(item.imageUrls.length, 1);
       expect(item.status, 'Gemeldet');
+    });
+
+    test('defaults status to Gemeldet only for issues and null for news/ideas', () {
+      final issueJson = {
+        'id': 'issue-1',
+        'title': 'Schlagloch',
+        'description': 'Tiefes Schlagloch',
+        'createdDate': '2026-09-18T10:00:00.000',
+        'street': 'Kirchengasse',
+        'category': 'Straße',
+      };
+      final issueItem = PostItem.fromJson(issueJson);
+      expect(issueItem.status, 'Gemeldet');
+
+      final newsJson = {
+        'id': 'news-1',
+        'title': 'Dorffest Ankündigung',
+        'description': 'Am Samstag findet das Fest statt.',
+        'createdDate': '2026-09-18T10:00:00.000',
+      };
+      final newsItem = PostItem.fromJson(newsJson);
+      expect(newsItem.status, isNull);
+    });
+
+    test('handles multiple images in PostItem', () {
+      final item = PostItem(
+        id: 'multi-img-1',
+        title: 'Baustelle',
+        description: 'Zwei Fotos vorhanden',
+        createdDate: DateTime.now(),
+        imageUrls: [
+          'https://example.com/img1.jpg',
+          'https://example.com/img2.jpg',
+        ],
+      );
+
+      expect(item.imageUrls.length, 2);
+      expect(item.imageUrls[0], 'https://example.com/img1.jpg');
+      expect(item.imageUrls[1], 'https://example.com/img2.jpg');
+      expect(item.imageUrl, 'https://example.com/img1.jpg');
     });
 
     test('serializes to Firestore map accurately', () {

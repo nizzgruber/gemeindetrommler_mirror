@@ -27,11 +27,19 @@ class DetailScreen extends StatefulWidget {
 
 class _DetailScreenState extends State<DetailScreen> {
   late PostItem _item;
+  int _currentImageIndex = 0;
+  final PageController _pageController = PageController();
 
   @override
   void initState() {
     super.initState();
     _item = widget.item;
+  }
+
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
   }
 
   Future<void> _editItem() async {
@@ -118,6 +126,7 @@ class _DetailScreenState extends State<DetailScreen> {
     final isAuthor = currentUser != null && _item.authorUid == currentUser.uid;
     final canEdit = !_item.isAussendung && (isAuthor || auth.isAdmin);
     final canDelete = !_item.isAussendung && (isAuthor || auth.isAdmin);
+    final isIssue = widget.collectionName == 'Issues' || _item.street != null;
 
     final formattedDate =
         DateFormat('dd.MM.yyyy HH:mm').format(_item.createdDate);
@@ -155,27 +164,131 @@ class _DetailScreenState extends State<DetailScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            if (_item.imageUrls.isNotEmpty)
-              ClipRRect(
-                borderRadius: BorderRadius.circular(12),
-                child: CachedNetworkImage(
-                  imageUrl: _item.imageUrls.first,
-                  width: double.infinity,
-                  fit: BoxFit.cover,
-                  placeholder: (context, url) => const Center(
-                    child: Padding(
-                      padding: EdgeInsets.all(32.0),
-                      child: CircularProgressIndicator(),
+            if (_item.imageUrls.isNotEmpty) ...[
+              if (_item.imageUrls.length == 1)
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(12),
+                  child: CachedNetworkImage(
+                    imageUrl: _item.imageUrls.first,
+                    width: double.infinity,
+                    height: 240,
+                    fit: BoxFit.cover,
+                    placeholder: (context, url) => const Center(
+                      child: Padding(
+                        padding: EdgeInsets.all(32.0),
+                        child: CircularProgressIndicator(),
+                      ),
+                    ),
+                    errorWidget: (context, url, error) => Container(
+                      height: 200,
+                      color: Colors.grey.shade200,
+                      child: const Icon(Icons.image_not_supported, size: 48),
                     ),
                   ),
-                  errorWidget: (context, url, error) => Container(
-                    height: 180,
-                    color: Colors.grey.shade200,
-                    child: const Icon(Icons.image_not_supported, size: 48),
-                  ),
+                )
+              else
+                Stack(
+                  alignment: Alignment.bottomCenter,
+                  children: [
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(12),
+                      child: SizedBox(
+                        height: 260,
+                        width: double.infinity,
+                        child: PageView.builder(
+                          controller: _pageController,
+                          itemCount: _item.imageUrls.length,
+                          onPageChanged: (index) {
+                            setState(() {
+                              _currentImageIndex = index;
+                            });
+                          },
+                          itemBuilder: (context, index) {
+                            return CachedNetworkImage(
+                              imageUrl: _item.imageUrls[index],
+                              width: double.infinity,
+                              height: 260,
+                              fit: BoxFit.cover,
+                              placeholder: (context, url) => const Center(
+                                child: Padding(
+                                  padding: EdgeInsets.all(32.0),
+                                  child: CircularProgressIndicator(),
+                                ),
+                              ),
+                              errorWidget: (context, url, error) => Container(
+                                height: 260,
+                                color: Colors.grey.shade200,
+                                child: const Icon(Icons.image_not_supported,
+                                    size: 48),
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+                    ),
+                    // Page indicator dots
+                    Positioned(
+                      bottom: 10,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 10, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: Colors.black.withValues(alpha: 0.6),
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: List.generate(
+                            _item.imageUrls.length,
+                            (i) => Container(
+                              margin:
+                                  const EdgeInsets.symmetric(horizontal: 3),
+                              width: _currentImageIndex == i ? 16 : 6,
+                              height: 6,
+                              decoration: BoxDecoration(
+                                color: _currentImageIndex == i
+                                    ? Colors.white
+                                    : Colors.white54,
+                                borderRadius: BorderRadius.circular(3),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                    // Photo counter badge (e.g. 1 / 2)
+                    Positioned(
+                      top: 10,
+                      right: 10,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: Colors.black.withValues(alpha: 0.6),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(Icons.photo_library,
+                                color: Colors.white, size: 14),
+                            const SizedBox(width: 4),
+                            Text(
+                              '${_currentImageIndex + 1} / ${_item.imageUrls.length}',
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
-              ),
-            const SizedBox(height: 16),
+              const SizedBox(height: 16),
+            ],
             Text(
               _item.title,
               style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
@@ -189,22 +302,37 @@ class _DetailScreenState extends State<DetailScreen> {
                   formattedDate,
                   style: TextStyle(fontSize: 13, color: Colors.grey.shade700),
                 ),
-                if (_item.status != null) ...[
+                if (isIssue && _item.status != null) ...[
                   const Spacer(),
                   Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 10, vertical: 4),
                     decoration: BoxDecoration(
-                      color: Colors.blue.shade50,
+                      color: _item.status == 'Erledigt'
+                          ? Colors.green.shade50
+                          : (_item.status == 'In Bearbeitung'
+                              ? Colors.blue.shade50
+                              : Colors.orange.shade50),
                       borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: Colors.blue.shade200),
+                      border: Border.all(
+                        color: _item.status == 'Erledigt'
+                            ? Colors.green.shade200
+                            : (_item.status == 'In Bearbeitung'
+                                ? Colors.blue.shade200
+                                : Colors.orange.shade200),
+                      ),
                     ),
                     child: Text(
                       _item.status!,
                       style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.blue.shade800),
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                        color: _item.status == 'Erledigt'
+                            ? Colors.green.shade800
+                            : (_item.status == 'In Bearbeitung'
+                                ? Colors.blue.shade800
+                                : Colors.orange.shade900),
+                      ),
                     ),
                   ),
                 ],
@@ -284,34 +412,6 @@ class _DetailScreenState extends State<DetailScreen> {
               ),
             ],
             const SizedBox(height: 24),
-            // Additional images gallery if there are multiple images
-            if (_item.imageUrls.length > 1) ...[
-              const Text(
-                'Weitere Fotos',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 8),
-              SizedBox(
-                height: 120,
-                child: ListView.separated(
-                  scrollDirection: Axis.horizontal,
-                  itemCount: _item.imageUrls.length - 1,
-                  separatorBuilder: (ctx, i) => const SizedBox(width: 8),
-                  itemBuilder: (ctx, index) {
-                    final url = _item.imageUrls[index + 1];
-                    return ClipRRect(
-                      borderRadius: BorderRadius.circular(8),
-                      child: CachedNetworkImage(
-                        imageUrl: url,
-                        width: 120,
-                        height: 120,
-                        fit: BoxFit.cover,
-                      ),
-                    );
-                  },
-                ),
-              ),
-            ],
           ],
         ),
       ),

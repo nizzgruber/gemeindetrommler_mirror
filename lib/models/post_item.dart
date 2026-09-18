@@ -19,17 +19,20 @@ class PostItem {
     required this.id,
     required this.title,
     required this.description,
-    this.imageUrl = '',
+    String imageUrl = '',
     List<String>? imageUrls,
     required this.createdDate,
     this.authorUid,
     this.street,
     this.category,
-    this.status = 'Gemeldet',
+    this.status,
     this.pdfUrl,
     this.webUrl,
     this.isAussendung = false,
-  }) : imageUrls = imageUrls ?? (imageUrl.isNotEmpty ? [imageUrl] : []);
+  })  : imageUrls = imageUrls ?? (imageUrl.isNotEmpty ? [imageUrl] : []),
+        imageUrl = imageUrl.isNotEmpty
+            ? imageUrl
+            : (imageUrls != null && imageUrls.isNotEmpty ? imageUrls.first : '');
 
   factory PostItem.fromFirestore(DocumentSnapshot doc) {
     final data = doc.data() as Map<String, dynamic>? ?? {};
@@ -49,6 +52,9 @@ class PostItem {
       images = [legacyImage];
     }
 
+    final hasIssueFields = data['street'] != null || data['category'] != null;
+    final status = data['status'] as String? ?? (hasIssueFields ? 'Gemeldet' : null);
+
     return PostItem(
       id: doc.id,
       title: data['title'] as String? ?? '',
@@ -59,7 +65,7 @@ class PostItem {
       authorUid: data['author_uid'] as String?,
       street: data['street'] as String?,
       category: data['category'] as String?,
-      status: data['status'] as String? ?? 'Gemeldet',
+      status: status,
       pdfUrl: data['pdfUrl'] as String?,
       webUrl: data['webUrl'] as String?,
       isAussendung: data['isAussendung'] as bool? ?? false,
@@ -119,17 +125,23 @@ class PostItem {
       images = [legacyImage];
     }
 
+    final hasIssueFields = map['street'] != null || map['category'] != null;
+    final status =
+        map['status'] as String? ?? (hasIssueFields ? 'Gemeldet' : null);
+
     return PostItem(
       id: map['id'] as String? ?? '',
       title: map['title'] as String? ?? '',
       description: map['description'] as String? ?? '',
-      imageUrl: legacyImage.isNotEmpty ? legacyImage : (images.isNotEmpty ? images.first : ''),
+      imageUrl: legacyImage.isNotEmpty
+          ? legacyImage
+          : (images.isNotEmpty ? images.first : ''),
       imageUrls: images,
       createdDate: date,
       authorUid: map['authorUid'] as String?,
       street: map['street'] as String?,
       category: map['category'] as String?,
-      status: map['status'] as String? ?? 'Gemeldet',
+      status: status,
       pdfUrl: map['pdfUrl'] as String?,
       webUrl: map['webUrl'] as String?,
       isAussendung: map['isAussendung'] as bool? ?? false,
