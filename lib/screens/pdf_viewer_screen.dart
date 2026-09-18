@@ -191,61 +191,69 @@ class _PdfViewerScreenState extends State<PdfViewerScreen>
             ),
           ),
           pagesBuilder: (context, pages) {
-            return GestureDetector(
-              behavior: HitTestBehavior.translucent,
-              onDoubleTapDown: (details) => _doubleTapDetails = details,
-              onDoubleTap: _handleDoubleTap,
-              child: InteractiveViewer(
-                transformationController: _transformationController,
-                minScale: 1.0,
-                maxScale: 5.0,
-                panEnabled: true,
-                scaleEnabled: true,
-                child: SingleChildScrollView(
-                  physics: const BouncingScrollPhysics(),
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 8.0, vertical: 16.0),
-                  child: Center(
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        for (int i = 0; i < pages.length; i++) ...[
-                          Container(
-                            margin: const EdgeInsets.only(bottom: 16),
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(4),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black.withValues(alpha: 0.15),
-                                  blurRadius: 10,
-                                  offset: const Offset(0, 3),
+            return LayoutBuilder(
+              builder: (context, constraints) {
+                final viewportWidth = constraints.maxWidth;
+                return GestureDetector(
+                  behavior: HitTestBehavior.translucent,
+                  onDoubleTapDown: (details) => _doubleTapDetails = details,
+                  onDoubleTap: _handleDoubleTap,
+                  child: InteractiveViewer(
+                    transformationController: _transformationController,
+                    minScale: 1.0,
+                    maxScale: 5.0,
+                    panEnabled: true,
+                    scaleEnabled: true,
+                    constrained: false,
+                    alignment: Alignment.topCenter,
+                    child: SizedBox(
+                      width: viewportWidth,
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8.0, vertical: 16.0),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            for (int i = 0; i < pages.length; i++) ...[
+                              Container(
+                                margin: const EdgeInsets.only(bottom: 16),
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  borderRadius: BorderRadius.circular(4),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color:
+                                          Colors.black.withValues(alpha: 0.15),
+                                      blurRadius: 10,
+                                      offset: const Offset(0, 3),
+                                    ),
+                                  ],
                                 ),
-                              ],
-                            ),
-                            child: Image(
-                              image: pages[i].image,
-                              fit: BoxFit.contain,
-                            ),
-                          ),
-                          if (pages.length > 1)
-                            Padding(
-                              padding: const EdgeInsets.only(bottom: 12.0),
-                              child: Text(
-                                'Seite ${i + 1} von ${pages.length}',
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w500,
-                                  color: Colors.grey.shade700,
+                                child: Image(
+                                  image: pages[i].image,
+                                  fit: BoxFit.contain,
                                 ),
                               ),
-                            ),
-                        ],
-                      ],
+                              if (pages.length > 1)
+                                Padding(
+                                  padding: const EdgeInsets.only(bottom: 12.0),
+                                  child: Text(
+                                    'Seite ${i + 1} von ${pages.length}',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w500,
+                                      color: Colors.grey.shade700,
+                                    ),
+                                  ),
+                                ),
+                            ],
+                          ],
+                        ),
+                      ),
                     ),
                   ),
-                ),
-              ),
+                );
+              },
             );
           },
         ),

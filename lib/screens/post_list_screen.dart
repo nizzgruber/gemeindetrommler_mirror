@@ -129,6 +129,30 @@ class _PostListScreenState extends State<PostListScreen> {
     }
   }
 
+  void _editPost(PostItem item) {
+    if (widget.collectionName == 'Issues') {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (ctx) => AddIssueScreen(issueToEdit: item),
+        ),
+      );
+    } else {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (ctx) => AddPostScreen(
+            collectionName: widget.collectionName,
+            screenTitle: widget.collectionName == 'News'
+                ? 'Nachricht bearbeiten'
+                : 'Idee bearbeiten',
+            postToEdit: item,
+          ),
+        ),
+      );
+    }
+  }
+
   Future<void> _onAddNewPressed() async {
     final auth = Provider.of<AuthService>(context, listen: false);
 
@@ -402,6 +426,7 @@ class _PostListScreenState extends State<PostListScreen> {
             final isAuthor =
                 currentUser != null && item.authorUid == currentUser.uid;
             final canDelete = !item.isAussendung && (isAuthor || auth.isAdmin);
+            final canEdit = !item.isAussendung && (isAuthor || auth.isAdmin);
             final formattedDate =
                 DateFormat('dd.MM.yyyy').format(item.createdDate);
 
@@ -525,7 +550,10 @@ class _PostListScreenState extends State<PostListScreen> {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (ctx) => DetailScreen(item: item),
+                      builder: (ctx) => DetailScreen(
+                        item: item,
+                        collectionName: widget.collectionName,
+                      ),
                     ),
                   );
                 }
@@ -535,7 +563,73 @@ class _PostListScreenState extends State<PostListScreen> {
               trailing: item.isAussendung
                   ? Icon(Icons.arrow_forward_ios,
                       size: 14, color: Colors.grey.shade400)
-                  : null,
+                  : (_selectedItems.isNotEmpty
+                      ? null
+                      : ((canEdit || canDelete)
+                          ? PopupMenuButton<String>(
+                              icon: const Icon(Icons.more_vert,
+                                  size: 20, color: Colors.black54),
+                              tooltip: 'Optionen',
+                              onSelected: (value) async {
+                                if (value == 'edit') {
+                                  _editPost(item);
+                                } else if (value == 'delete') {
+                                  final confirmed = await showDialog<bool>(
+                                    context: context,
+                                    builder: (dialogCtx) => AlertDialog(
+                                      title: const Text('Eintrag löschen?'),
+                                      content: const Text(
+                                          'Möchten Sie diesen Eintrag wirklich unwiderruflich löschen?'),
+                                      actions: [
+                                        TextButton(
+                                          onPressed: () =>
+                                              Navigator.pop(dialogCtx, false),
+                                          child: const Text('Abbrechen'),
+                                        ),
+                                        ElevatedButton(
+                                          style: ElevatedButton.styleFrom(
+                                              backgroundColor: Colors.red),
+                                          onPressed: () =>
+                                              Navigator.pop(dialogCtx, true),
+                                          child: const Text('Löschen'),
+                                        ),
+                                      ],
+                                    ),
+                                  );
+                                  if (confirmed == true) {
+                                    _deletePost(item);
+                                  }
+                                }
+                              },
+                              itemBuilder: (ctx) => [
+                                if (canEdit)
+                                  const PopupMenuItem<String>(
+                                    value: 'edit',
+                                    child: Row(
+                                      children: [
+                                        Icon(Icons.edit_outlined, size: 20),
+                                        SizedBox(width: 8),
+                                        Text('Bearbeiten'),
+                                      ],
+                                    ),
+                                  ),
+                                if (canDelete)
+                                  const PopupMenuItem<String>(
+                                    value: 'delete',
+                                    child: Row(
+                                      children: [
+                                        Icon(Icons.delete_outline,
+                                            size: 20, color: Colors.red),
+                                        SizedBox(width: 8),
+                                        Text('Löschen',
+                                            style:
+                                                TextStyle(color: Colors.red)),
+                                      ],
+                                    ),
+                                  ),
+                              ],
+                            )
+                          : null)),
               title: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [

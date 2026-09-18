@@ -236,4 +236,37 @@ class PostItem {
       isAussendung: true,
     );
   }
+
+  /// Create a copy of this PostItem with updated fields
+  PostItem copyWith({
+    String? id,
+    String? title,
+    String? description,
+    String? imageUrl,
+    List<String>? imageUrls,
+    DateTime? createdDate,
+    String? authorUid,
+    String? street,
+    String? category,
+    String? status,
+    String? pdfUrl,
+    String? webUrl,
+    bool? isAussendung,
+  }) {
+    return PostItem(
+      id: id ?? this.id,
+      title: title ?? this.title,
+      description: description ?? this.description,
+      imageUrl: imageUrl ?? this.imageUrl,
+      imageUrls: imageUrls ?? this.imageUrls,
+      createdDate: createdDate ?? this.createdDate,
+      authorUid: authorUid ?? this.authorUid,
+      street: street ?? this.street,
+      category: category ?? this.category,
+      status: status ?? this.status,
+      pdfUrl: pdfUrl ?? this.pdfUrl,
+      webUrl: webUrl ?? this.webUrl,
+      isAussendung: isAussendung ?? this.isAussendung,
+    );
+  }
 }

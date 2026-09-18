@@ -43,6 +43,14 @@ class FirestoreService {
     await _firestore.collection(collectionName).doc(documentId).delete();
   }
 
+  /// Update an existing post by ID
+  Future<void> updatePost(String collectionName, PostItem item) async {
+    await _firestore
+        .collection(collectionName)
+        .doc(item.id)
+        .update(item.toFirestore());
+  }
+
   /// Send a contact form submission to Firestore
   Future<void> submitContactMessage({
     required String firstName,

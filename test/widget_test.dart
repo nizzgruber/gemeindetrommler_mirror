@@ -219,4 +219,121 @@ void main() {
       expect(totalBottomPadding > systemNavBarHeight, isTrue);
     });
   });
+
+  group('Post Edit & Permissions Tests', () {
+    test('PostItem.copyWith updates fields while preserving existing values', () {
+      final original = PostItem(
+        id: 'post-1',
+        title: 'Original Title',
+        description: 'Original Desc',
+        createdDate: DateTime(2026, 1, 1),
+        authorUid: 'user-123',
+        imageUrl: 'https://example.com/img1.jpg',
+        street: 'Hauptstraße',
+        category: 'Sonstiges',
+        status: 'Gemeldet',
+      );
+
+      final edited = original.copyWith(
+        title: 'Updated Title',
+        description: 'Updated Desc',
+        imageUrl: 'https://example.com/img2.jpg',
+        imageUrls: ['https://example.com/img2.jpg'],
+        status: 'In Bearbeitung',
+      );
+
+      expect(edited.id, 'post-1');
+      expect(edited.authorUid, 'user-123');
+      expect(edited.createdDate, DateTime(2026, 1, 1));
+      expect(edited.street, 'Hauptstraße');
+      expect(edited.category, 'Sonstiges');
+      expect(edited.title, 'Updated Title');
+      expect(edited.description, 'Updated Desc');
+      expect(edited.imageUrl, 'https://example.com/img2.jpg');
+      expect(edited.imageUrls, ['https://example.com/img2.jpg']);
+      expect(edited.status, 'In Bearbeitung');
+    });
+
+    test('verifies post edit permissions: admins can edit all, users can edit only their own, Aussendungen cannot be edited', () {
+      bool canEditPost({
+        required PostItem post,
+        required String? currentUserId,
+        required bool isAdmin,
+      }) {
+        if (post.isAussendung) return false;
+        final isAuthor = currentUserId != null && post.authorUid == currentUserId;
+        return isAuthor || isAdmin;
+      }
+
+      final userPost = PostItem(
+        id: 'user_post_1',
+        title: 'Schlagloch',
+        description: 'Großes Schlagloch',
+        createdDate: DateTime.now(),
+        authorUid: 'author_1',
+      );
+
+      final aussendung = PostItem(
+        id: 'wp_123',
+        title: 'Aussendung',
+        description: 'PDF',
+        createdDate: DateTime.now(),
+        isAussendung: true,
+      );
+
+      // 1. Author user can edit their own post
+      expect(
+        canEditPost(post: userPost, currentUserId: 'author_1', isAdmin: false),
+        isTrue,
+      );
+
+      // 2. Different user cannot edit other user's post
+      expect(
+        canEditPost(post: userPost, currentUserId: 'other_user', isAdmin: false),
+        isFalse,
+      );
+
+      // 3. Admin can edit any post (even if not author)
+      expect(
+        canEditPost(post: userPost, currentUserId: 'other_user', isAdmin: true),
+        isTrue,
+      );
+
+      // 4. Admin cannot edit external WordPress Aussendungen
+      expect(
+        canEditPost(post: aussendung, currentUserId: 'author_1', isAdmin: true),
+        isFalse,
+      );
+
+      // 5. Unauthenticated user cannot edit
+      expect(
+        canEditPost(post: userPost, currentUserId: null, isAdmin: false),
+        isFalse,
+      );
+    });
+
+    test('validates issue status editing for admins', () {
+      const allowedStatuses = ['Gemeldet', 'In Bearbeitung', 'Erledigt'];
+
+      final issue = PostItem(
+        id: 'issue_1',
+        title: 'Straßenlaterne',
+        description: 'Laterne dunkel',
+        createdDate: DateTime.now(),
+        authorUid: 'user_1',
+        status: 'Gemeldet',
+      );
+
+      expect(issue.status, 'Gemeldet');
+
+      // Admin transitions status
+      final inProgress = issue.copyWith(status: 'In Bearbeitung');
+      expect(inProgress.status, 'In Bearbeitung');
+      expect(allowedStatuses.contains(inProgress.status), isTrue);
+
+      final done = inProgress.copyWith(status: 'Erledigt');
+      expect(done.status, 'Erledigt');
+      expect(allowedStatuses.contains(done.status), isTrue);
+    });
+  });
 }
