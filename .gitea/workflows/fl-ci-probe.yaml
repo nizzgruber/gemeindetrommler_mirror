@@ -1,0 +1,146 @@
+# TEMPORAER - nur fuer den Cache-Nachweis der CI-Aenderungen (Auftrag fl-*).
+# Wird nach der Verifikation wieder geloescht. Enthaelt nur die cache-relevanten
+# Schritte aus build-apk.yaml (identische keys/paths!), OHNE QEMU/apt-Setup, ohne
+# flutter analyze/test und ohne Gradle-Build. Dispatch-only: kein push/pull_request-
+# Trigger, kann also den normalen CI-Betrieb nicht ausloesen.
+name: FL Probe (cache proof, temporary)
+
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.repository }}-ci-queue
+  cancel-in-progress: false
+
+env:
+  FLUTTER_VERSION: '3.47.4'
+  FLUTTER_ROOT_PATH: /sdks/flutter
+  ANDROID_SDK_PATH: /opt/android-sdk-linux
+
+jobs:
+  cache-proof:
+    name: Cache proof (no QEMU, no Gradle)
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    permissions:
+      contents: read
+    container:
+      image: ghcr.io/cirruslabs/flutter:3.44.0
+      options: --privileged
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Marker for cache round-trip proof
+        # Beweismittel: Datei wird im ersten Lauf in ~/.gradle/caches geschrieben und
+        # muss im Folge-Lauf aus dem Cache zurueckkommen (frischer Container!).
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$HOME/.gradle/caches"
+          echo "fl-probe run=${{ github.run_id }} at=$(date -Is)" > "$HOME/.gradle/caches/fl-probe-marker.txt"
+          cat "$HOME/.gradle/caches/fl-probe-marker.txt"
+
+      - name: Switch Flutter SDK to pinned version
+        shell: bash
+        run: |
+          set -euo pipefail
+          T0=$(date +%s)
+          FLUTTER_ROOT="${FLUTTER_ROOT:-/sdks/flutter}"
+          git config --global --add safe.directory "$FLUTTER_ROOT"
+          git config --global --add safe.directory '*'
+          CURRENT="$(git -C "$FLUTTER_ROOT" describe --tags --exact-match 2>/dev/null || true)"
+          if [ "$CURRENT" != "$FLUTTER_VERSION" ]; then
+            echo "Switching Flutter SDK from '${CURRENT:-unknown}' to '$FLUTTER_VERSION'"
+            git -C "$FLUTTER_ROOT" fetch --depth 1 origin "refs/tags/${FLUTTER_VERSION}:refs/tags/${FLUTTER_VERSION}"
+            git -C "$FLUTTER_ROOT" checkout -q "$FLUTTER_VERSION"
+            rm -rf "$FLUTTER_ROOT/bin/cache"
+          fi
+          echo "switch_sdk_seconds=$(( $(date +%s) - T0 ))"
+
+      - name: Detect toolchain versions for cache keys
+        id: tk
+        shell: bash
+        run: |
+          set -euo pipefail
+          FLUTTER_ROOT="${FLUTTER_ROOT:-$FLUTTER_ROOT_PATH}"
+          ANDROID_SDK="${ANDROID_HOME:-$ANDROID_SDK_PATH}"
+          SDK_CACHE=on
+          if [ "$FLUTTER_ROOT" != "$FLUTTER_ROOT_PATH" ] || [ "$ANDROID_SDK" != "$ANDROID_SDK_PATH" ]; then
+            echo "::warning::Image-Pfade weichen ab - SDK-Cache-Step wird uebersprungen"
+            SDK_CACHE=off
+          fi
+          FLUTTER_EXT="$FLUTTER_ROOT/packages/flutter_tools/gradle/src/main/kotlin/FlutterExtension.kt"
+          [ -f "$FLUTTER_EXT" ] || { echo "::error::Flutter-SDK nicht gefunden: $FLUTTER_ROOT"; exit 1; }
+          NDK_VERSION="$(sed -nE 's/.*ndkVersion: String = "([^"]+)".*/\1/p' "$FLUTTER_EXT")"
+          [ -n "$NDK_VERSION" ] || { echo "::error::Could not determine Flutter's NDK version"; exit 1; }
+          echo "flutter=$FLUTTER_VERSION" >> "$GITHUB_OUTPUT"
+          echo "ndk=$NDK_VERSION" >> "$GITHUB_OUTPUT"
+          echo "sdk_cache=$SDK_CACHE" >> "$GITHUB_OUTPUT"
+
+      # ---- identisch zu build-apk.yaml (Production-Keys!) --------------------
+      - name: Cache pub packages
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.pub-cache
+          key: pubcache-${{ runner.os }}-${{ runner.arch }}-flutter${{ steps.tk.outputs.flutter }}-${{ hashFiles('pubspec.lock') }}
+          restore-keys: |
+            pubcache-${{ runner.os }}-${{ runner.arch }}-flutter${{ steps.tk.outputs.flutter }}-
+            pubcache-${{ runner.os }}-${{ runner.arch }}-
+
+      - name: Cache Gradle caches and wrapper
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper/dists
+          key: gradle-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('android/gradle/wrapper/gradle-wrapper.properties', 'android/gradle.properties', 'android/**/*.gradle', 'android/**/*.gradle.kts', 'pubspec.lock') }}
+          restore-keys: |
+            gradle-${{ runner.os }}-${{ runner.arch }}-
+
+      - name: Cache Flutter SDK cache
+        if: steps.tk.outputs.sdk_cache == 'on'
+        uses: actions/cache@v4
+        with:
+          path: |
+            /sdks/flutter/bin/cache
+          key: sdk-${{ runner.os }}-${{ runner.arch }}-flutter${{ steps.tk.outputs.flutter }}-binCache
+          restore-keys: |
+            sdk-${{ runner.os }}-${{ runner.arch }}-flutter${{ steps.tk.outputs.flutter }}-binCache
+
+      - name: Prove restored state
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "--- gradle marker (nur aus Cache moeglich) ---"
+          cat "$HOME/.gradle/caches/fl-probe-marker.txt" 2>/dev/null || echo "MARKER FEHLT (cache-miss)"
+          echo "--- pub-cache Inhalt (Top-Level) ---"
+          ls -1 "$HOME/.pub-cache" 2>/dev/null | head -10 || echo "pub-cache leer"
+          du -sh "$HOME/.pub-cache" 2>/dev/null || true
+          echo "--- flutter bin/cache ---"
+          du -sh "${FLUTTER_ROOT:-/sdks/flutter}/bin/cache" 2>/dev/null || echo "bin/cache (noch) nicht vorhanden"
+
+      - name: Warm caches (flutter --version, pub get, precache android)
+        shell: bash
+        run: |
+          set -euo pipefail
+          T0=$(date +%s)
+          flutter --version
+          echo "flutter_version_seconds=$(( $(date +%s) - T0 ))"
+          T1=$(date +%s)
+          flutter pub get
+          echo "pub_get_seconds=$(( $(date +%s) - T1 ))"
+          T2=$(date +%s)
+          # Vollstaendiger Android-Engine-Stand, damit der produzierte SDK-Cache-Eintrag
+          # fuer echte Builds nutzbar ist (actions/cache aktualisiert einen bestehenden
+          # Key nicht - ein halbvoller Eintrag wuerde ewig herumliegen).
+          flutter precache --android
+          echo "precache_android_seconds=$(( $(date +%s) - T2 ))"
+
+      - name: Report cache sizes
+        shell: bash
+        run: |
+          set -euo pipefail
+          du -sh "$HOME/.pub-cache" "$HOME/.gradle" "${FLUTTER_ROOT:-/sdks/flutter}/bin/cache" 2>/dev/null || true
+          df -h / | tail -n 1
