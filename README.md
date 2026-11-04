@@ -6,6 +6,32 @@ Die App vereint aktuelle Gemeinde-Nachrichten, offizielle PDF-Aussendungen des B
 
 ---
 
+<!-- ci-workflow-note:begin (zentral gepflegt, wird per Skript gesetzt – bitte nicht von Hand ändern) -->
+## CI/CD: `main` und Tags bauen APKs und veroeffentlichen sie als Release
+
+Der Workflow baut Android-APKs und laedt sie als Gitea-Release (`latest`) hoch. Was auf `main` gemergt wird, ist damit die aktuell veroeffentlichte App-Version - auch wenn lokal niemand die App getestet hat.
+
+| Ereignis | Pipeline | Ergebnis |
+| --- | --- | --- |
+| Push auf Branch `refactor/**` | ja | Build + Artefakte, Release-Publish unerwuenscht |
+| Pull Request nach `main`/`master` | ja | Test-Build + APK-Artefakte, **kein** Release gewollt |
+| Merge/Push auf `main`/`master` | ja | APKs bauen + **Release `latest` aktualisieren** |
+| Tag `v*` | ja | APKs bauen + Release fuers Tag-Release |
+| workflow_dispatch (Actions-Tab) | ja | wie `main`, manuell |
+
+**Arbeitsweise in diesem Repo:** nicht direkt auf `main` pushen, sondern immer Branch +
+Pull Request und erst nach grünem Lauf mergen.
+
+```bash
+git switch -c feat/kurzer-name
+git commit -am "feat: ..."
+git push -u origin feat/kurzer-name   # PR auf git.djnizz.at oeffnen, nach gruenem Build mergen
+```
+
+> Achtung: Der Step "Publish Direct APKs to Gitea Releases" hat keine Bedingung und laeuft damit
+> auch bei PR-Laeufen. Empfohlen: `if: github.event_name != 'pull_request'`.
+<!-- ci-workflow-note:end -->
+
 ## 📱 Funktionsumfang & Module
 
 ### 1. 📰 Nachrichten & Offizielle PDF-Aussendungen (`News`)
