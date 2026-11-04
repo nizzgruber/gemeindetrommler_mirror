@@ -54,6 +54,31 @@ jobs:
       image: ghcr.io/cirruslabs/flutter:3.44.0
       options: --privileged
     steps:
+      - name: Bootstrap Node.js 20 (bash, vor allen uses-Schritten)
+        # PFLICHT in diesem Image: ghcr.io/cirruslabs/flutter:3.44.0 hat KEIN node
+        # (verifiziert: docker run --rm --entrypoint sh <image> -lc 'command -v node'
+        # -> ohne Treffer). act_runner fuehrt jede `uses:`-Action im Job-Container
+        # als `docker exec node .../dist/index.js` aus; fehlt node, stirbt der Schritt
+        # mit Exit 126 ("exec: node: executable file not found in $PATH") - genau
+        # daran ist Run 97 (fl-ci-probe) in Schritt 1 gescheitert.
+        # Dieser Step ist reines bash und braucht deshalb selbst kein node.
+        shell: bash
+        timeout-minutes: 5
+        run: |
+          set -euo pipefail
+          if command -v node >/dev/null 2>&1; then
+            echo "node bereits vorhanden: $(node --version)"
+            exit 0
+          fi
+          case "$(uname -m)" in
+            aarch64|arm64) NODE_ARCH=arm64 ;;
+            *) NODE_ARCH=x64 ;;
+          esac
+          curl -fsSL "https://nodejs.org/dist/v20.18.0/node-v20.18.0-linux-${NODE_ARCH}.tar.gz" \
+            | tar -xz -C /usr/local --strip-components=1
+          node --version
+          echo "NODE_BOOTSTRAP_OK $(node --version)"
+
       # NEU an erster Stelle: alle cache-Keys nutzen hashFiles(), und das rechnet
       # ausschliesslich gegen den Workspace - ohne Checkout waere der Hash leer und
       # der Key wuerde nie matchen. Reine Verschiebung, dieser Step brauchte vorher
