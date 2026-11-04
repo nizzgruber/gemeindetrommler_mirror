@@ -1,0 +1,160 @@
+# Sichere, reine Bash-Alternative zu cirrus-actions/rebase.
+#
+# DIAGNOSE (auf diesem Runner verifiziert):
+#   * Der Android-Job laeuft in ghcr.io/cirruslabs/flutter:3.44.0.
+#     Test: docker run --rm --entrypoint sh ghcr.io/cirruslabs/flutter:3.44.0 -lc 'command -v node'
+#     -> FEHLT (Ubuntu 24.04, git vorhanden, aber kein node/nodejs).
+#   * act_runner fuehrt node-basierte Actions im Job-Container aus:
+#     "executing remote job container: [node /var/run/act/actions/<sha>/dist/index.js]"
+#     (Log des letzten gruenen Laufs, Job 56, Zeile 771).
+#   * In build-apk.yaml installiert erst der Schritt "Setup Node.js 20 & ARM64 Flutter
+#     Engine" Node 20 nach /usr/local. Jede node-basierte Action VOR diesem Schritt
+#     (z.B. cirrus-actions/rebase@1.8 als erster Schritt) scheitert deshalb mit:
+#     "Unable to locate executable file: node".
+#
+# LOSUNG: dieser Workflow benutzt KEIN `uses:` und braucht damit kein Node.
+# Er erzwingt zusaetzlich:
+#   - Guards (Branch-Check, [skip ci]/[rebase skip], Base != Head, Nothing-to-do-Erkennung)
+#   - Dry-Run als Standard (push erst nach explizitem dry_run=false)
+#   - git push --force-with-lease mit vorab gemerkter Old-SHA (kein blindes Force-Push)
+#   - harte Blocke fuer main/master als Ziel-Branch
+#   - Schritt-Level-timeout-minutes (Gitea Actions >= 1.24 ignoriert job-level timeout-minutes)
+name: Rebase branch onto base (bash only, no node)
+
+on:
+  workflow_dispatch:
+    inputs:
+      base_branch:
+        description: 'Base branch, onto den der aktuelle Branch rebasiert wird'
+        required: false
+        default: 'main'
+      dry_run:
+        description: 'true = nur berichten, nichts pushen (Standard)'
+        required: false
+        default: 'true'
+
+permissions:
+  contents: write
+
+jobs:
+  rebase:
+    name: fetch + rebase + force-with-lease
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      BASE_BRANCH: ${{ github.event.inputs.base_branch || 'main' }}
+      DRY_RUN: ${{ github.event.inputs.dry_run || 'true' }}
+      GIT_HEADER: "AUTHORIZATION: token ${{ github.token }}"
+
+    steps:
+      - name: Guards pruefen
+        shell: bash
+        timeout-minutes: 2
+        run: |
+          set -euo pipefail
+          echo "GITHUB_REF=${GITHUB_REF}"
+          case "${GITHUB_REF}" in
+            refs/heads/*) ;;
+            *) echo "::error::Rebase nur fuer Branches erlaubt (GITHUB_REF=${GITHUB_REF})."; exit 1 ;;
+          esac
+          BRANCH="${GITHUB_REF#refs/heads/}"
+          echo "HEAD_BRANCH=${BRANCH}" >> "$GITHUB_ENV"
+
+          if [ "${BRANCH}" = "${BASE_BRANCH}" ]; then
+            echo "::error::Head-Branch und Base-Branch sind identisch (${BRANCH}). Nichts zu tun."; exit 1
+          fi
+          case "${BRANCH}" in
+            main|master)
+              echo "::error::Geschuetzter Branch '${BRANCH}' darf nicht rebasiert werden."; exit 1 ;;
+          esac
+
+      - name: Clone via git (ohne actions/checkout, daher ohne node)
+        shell: bash
+        timeout-minutes: 5
+        run: |
+          set -euo pipefail
+          cd "$GITHUB_WORKSPACE"
+          git init -q .
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
+          git remote add origin "${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}.git"
+          git -c http.extraheader="$GIT_HEADER" fetch --no-tags --progress \
+            origin "refs/heads/${HEAD_BRANCH}:refs/heads/${HEAD_BRANCH}" \
+            "refs/heads/${BASE_BRANCH}:refs/remotes/origin/${BASE_BRANCH}"
+          git checkout -q "${HEAD_BRANCH}"
+          echo "OLD_SHA=$(git rev-parse HEAD)" >> "$GITHUB_ENV"
+          echo "BASE_SHA=$(git rev-parse "refs/remotes/origin/${BASE_BRANCH}")" >> "$GITHUB_ENV"
+          git log --oneline -n 3
+
+      - name: Titel-Guards ([skip ci] / [rebase skip])
+        shell: bash
+        timeout-minutes: 2
+        run: |
+          set -euo pipefail
+          SUBJECT="$(git log -1 --pretty=%s)"
+          echo "letzter Commit-Titel: ${SUBJECT}"
+          case "${SUBJECT}" in
+            *"[skip ci]"*|*"[rebase skip]"*)
+              echo "skip-Marker im Commit-Titel gefunden - Breche ab (ohne Fehler)."
+              echo "SKIP_REBASE=true" >> "$GITHUB_ENV" ;;
+            *) echo "SKIP_REBASE=false" >> "$GITHUB_ENV" ;;
+          esac
+
+      - name: Rebase noetig?
+        shell: bash
+        timeout-minutes: 2
+        run: |
+          set -euo pipefail
+          if [ "$SKIP_REBASE" = "true" ]; then echo "uebersprungen"; exit 0; fi
+          if git merge-base --is-ancestor "refs/remotes/origin/${BASE_BRANCH}" HEAD; then
+            echo "Head enthaelt Base bereits - kein Rebase erforderlich."
+            echo "NOTHING_TO_REBASE=true" >> "$GITHUB_ENV"
+          else
+            echo "Rebase erforderlich: Base ${BASE_BRANCH} ist noch nicht enthalten."
+            echo "NOTHING_TO_REBASE=false" >> "$GITHUB_ENV"
+          fi
+
+      - name: Rebase ausfuehren
+        shell: bash
+        timeout-minutes: 8
+        run: |
+          set -euo pipefail
+          if [ "$SKIP_REBASE" = "true" ] || [ "$NOTHING_TO_REBASE" = "true" ]; then
+            echo "Kein Rebase noetig/erlaubt."; exit 0
+          fi
+          git config user.name  "gitea-actions-bot"
+          git config user.email "actions@${GITHUB_SERVER_URL#https://}"
+          git config advice.detachedHead false
+          if ! git rebase "refs/remotes/origin/${BASE_BRANCH}"; then
+            CONFLICTS="$(git diff --name-only --diff-filter=U | tr '\n' ' ')"
+            git rebase --abort || true
+            echo "::error::Rebase-Konflikt(e) in: ${CONFLICTS:-unbekannt}. Rebase wurde abgebrochen, Branch unveraendert. Bitte lokal loesen: git fetch origin && git rebase origin/${BASE_BRANCH}"
+            exit 1
+          fi
+          git log --oneline -n 5
+
+      - name: Pushen (--force-with-lease, nur wenn dry_run=false)
+        shell: bash
+        timeout-minutes: 5
+        run: |
+          set -euo pipefail
+          NEW_SHA="$(git rev-parse HEAD)"
+          if [ "$SKIP_REBASE" = "true" ] || [ "$NOTHING_TO_REBASE" = "true" ]; then
+            echo "Nichts zu pushen."; exit 0
+          fi
+          if [ "$DRY_RUN" != "false" ]; then
+            echo "DRY-RUN: wuerde pushen:"
+            echo "  branch : ${HEAD_BRANCH}"
+            echo "  alt    : ${OLD_SHA}"
+            echo "  neu    : ${NEW_SHA}"
+            echo "  befehl : git push --force-with-lease=refs/heads/${HEAD_BRANCH}:${OLD_SHA} origin HEAD:refs/heads/${HEAD_BRANCH}"
+            echo "::notice::Dry-Run aktiv - nichts gepusht. Mit dry_run=false erneut ausfuehren."
+            exit 0
+          fi
+          if [ "$NEW_SHA" = "$OLD_SHA" ]; then
+            echo "Keine Aenderung am Head - kein Push noetig."; exit 0
+          fi
+          git -c http.extraheader="$GIT_HEADER" push \
+            --force-with-lease="refs/heads/${HEAD_BRANCH}:${OLD_SHA}" \
+            origin "HEAD:refs/heads/${HEAD_BRANCH}"
+          echo "Gepusht: ${HEAD_BRANCH} ${OLD_SHA:0:10} -> ${NEW_SHA:0:10}"
+
