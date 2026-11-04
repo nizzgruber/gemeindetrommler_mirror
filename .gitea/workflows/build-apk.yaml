@@ -220,6 +220,7 @@ jobs:
           if-no-files-found: error
 
       - name: Publish Direct APKs to Gitea Releases
+        if: github.event_name != 'pull_request'
         continue-on-error: true
         env:
           GITEA_TOKEN: ${{ secrets.GITHUB_TOKEN }}
