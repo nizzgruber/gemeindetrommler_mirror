@@ -14,11 +14,16 @@ on:
       - master
   workflow_dispatch:
 
-# Only one build per ref at a time: two QEMU-emulated Gradle builds in parallel
-# take the ARM64 runner down (both runs then die at the same instant).
+# REPO-WEITE Gruppe (ohne github.ref!), damit sich ALLE Workflows dieses Repos
+# gegenseitig ausschliessen. cancel-in-progress: false, weil der Runner capacity=1
+# hat: Parallelitaet gibt es gar nicht, ein Build steht also sowieso in der Queue.
+# "true" waer hier kontraproduktiv - es wuerde genau dann einen 30-60-min-QEMU-Build
+# wegwerfen, wenn jemand nachlegt (und ein laufendes v*-Release haette verloren).
+# Der alte Kommentar ("zwei parallele Builds killen den Runner") traf den Grund nicht:
+# bei capacity=1 koennen nie zwei Jobs gleichzeitig laufen.
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  group: ${{ github.repository }}-ci-queue
+  cancel-in-progress: false
 
 env:
   # Keep in sync with .github/workflows/build-ios.yaml and pubspec.yaml (environment).
@@ -26,6 +31,13 @@ env:
   # Static qemu-x86_64 for the ARM64 runner (Debian trixie `qemu-user`, see below).
   QEMU_DEB_VERSION: '10.0.13+ds-0+deb13u1'
   QEMU_DEB_SHA1: '02b553a4532192bc999d15408d1e56d7b254906f'
+  # NEU: Fixierte Pfade fuer die Cache-Steps. actions/cache kann keine Shell-Var
+  # ${FLUTTER_ROOT:-...} aus dem Image lesen (env-Context kennt nur Workflow-env),
+  # deshalb stehen sie hier - identisch zu den Defaults, die unten im Code verwendet
+  # werden. Der Guard-Step "Detect toolchain versions" bricht, falls das Image
+  # davon abweicht, damit nie ein leerer Pfad als "Cache" gespeichert wird.
+  FLUTTER_ROOT_PATH: /sdks/flutter
+  ANDROID_SDK_PATH: /opt/android-sdk-linux
 
 jobs:
   build-android:
@@ -42,6 +54,13 @@ jobs:
       image: ghcr.io/cirruslabs/flutter:3.44.0
       options: --privileged
     steps:
+      # NEU an erster Stelle: alle cache-Keys nutzen hashFiles(), und das rechnet
+      # ausschliesslich gegen den Workspace - ohne Checkout waere der Hash leer und
+      # der Key wuerde nie matchen. Reine Verschiebung, dieser Step brauchte vorher
+      # nichts und aendert nichts an den folgenden Steps.
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
       - name: Switch Flutter SDK to pinned version
         # act_runner defaults to `sh -e` (dash); bash is needed for `pipefail`.
         shell: bash
@@ -59,7 +78,106 @@ jobs:
             # artifacts for the new version are downloaded on first use.
             rm -rf "$FLUTTER_ROOT/bin/cache"
           fi
-          flutter --version
+          # NEU: das abschliessende `flutter --version` ist weg - es haette vor dem
+          # Cache-Restore den Dart-SDK erneut geladen und damit den gerade
+          # wiederhergestellten Cache teilweise ueberschrieben. Der naechste Step
+          # plus "Inspect Build Environment" liefern denselben Nachweis.
+
+      - name: Detect toolchain versions for cache keys
+        # NEU: Cache-Keys duerfen nicht raten. Die NDK-Version haengt an der
+        # Flutter-Version ab (FlutterExtension.kt) und wird hier bestimmt, damit der
+        # SDK-Cache unten exakt auf diesen Stand gematcht wird.
+        # sdk_cache='off' (nur Warnung, kein Abbruch!) wenn das Image andere Pfade
+        # nutzt als die fixierten Cache-Pfade: dann bleibt der Build lauffaehig wie
+        # vorher, nur der SDK-Cache-Step wird uebersprungen statt ins Leere zu cachen.
+        id: tk
+        shell: bash
+        run: |
+          set -euo pipefail
+          FLUTTER_ROOT="${FLUTTER_ROOT:-$FLUTTER_ROOT_PATH}"
+          ANDROID_SDK="${ANDROID_HOME:-$ANDROID_SDK_PATH}"
+          SDK_CACHE=on
+          if [ "$FLUTTER_ROOT" != "$FLUTTER_ROOT_PATH" ] || [ "$ANDROID_SDK" != "$ANDROID_SDK_PATH" ]; then
+            echo "::warning::Image-Pfade (FLUTTER_ROOT=$FLUTTER_ROOT, ANDROID_HOME=$ANDROID_SDK) weichen von den Cache-Pfaeden ab - SDK-Cache-Step wird uebersprungen. Bitte FLUTTER_ROOT_PATH/ANDROID_SDK_PATH und path: anpassen."
+            SDK_CACHE=off
+          fi
+          FLUTTER_EXT="$FLUTTER_ROOT/packages/flutter_tools/gradle/src/main/kotlin/FlutterExtension.kt"
+          [ -f "$FLUTTER_EXT" ] || { echo "::error::Flutter-SDK nicht gefunden: $FLUTTER_ROOT"; exit 1; }
+          NDK_VERSION="$(sed -nE 's/.*ndkVersion: String = "([^"]+)".*/\1/p' "$FLUTTER_EXT")"
+          [ -n "$NDK_VERSION" ] || { echo "::error::Could not determine Flutter's NDK version"; exit 1; }
+          echo "flutter=$FLUTTER_VERSION" >> "$GITHUB_OUTPUT"
+          echo "ndk=$NDK_VERSION" >> "$GITHUB_OUTPUT"
+          echo "sdk_cache=$SDK_CACHE" >> "$GITHUB_OUTPUT"
+          echo "Cache-Key-Bestandteile: flutter=$FLUTTER_VERSION ndk=$NDK_VERSION sdk_cache=$SDK_CACHE"
+
+      # ---- Caches -------------------------------------------------------------
+      # Alle drei Entries sind so gebaut, dass ein Cache-Fehlschlag den Build NICHT
+      # kaputtmacht: actions/cache ist bei Miss neutral (Restore ist ein no-op, der
+      # Build laedt alles einfach neu). Bewusst KEIN continues-on-error/|| true, weil
+      # sonst ein defekter Cache-Service dauerhaft unsichtbar bliebe.
+      # Keys enthalten immer OS+Arch, damit ein x86-Runner niemals einen arm64-Stand
+      # zurueckbekommt (und umgekehrt).
+
+      - name: Cache pub packages
+        # ~/.pub-cache: Inhalt ist pro Paketversion unveraenderlich, deshalb sind die
+        # gestaffelten restore-keys gefahrlos (alt + neu gemischt = nur mehr Pakete).
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.pub-cache
+          key: pubcache-${{ runner.os }}-${{ runner.arch }}-flutter${{ steps.tk.outputs.flutter }}-${{ hashFiles('pubspec.lock') }}
+          restore-keys: |
+            pubcache-${{ runner.os }}-${{ runner.arch }}-flutter${{ steps.tk.outputs.flutter }}-
+            pubcache-${{ runner.os }}-${{ runner.arch }}-
+
+      - name: Cache Gradle caches and wrapper
+        # ~/.gradle/caches (modules-2 + transforms) und ~/.gradle/wrapper/dists
+        # (Gradle- Distribution, hier 9.3.1 - 200 MB, wandern sonst jeden Lauf neu).
+        # pubspec.lock ist Teil des Keys, weil die Gradle-Dateien der Flutter-Plugins
+        # im pub-cache liegen und hashFiles() sie nicht sieht: pubspec.lock ist der
+        # beste Proxy fuer "Android-Abhaengigkeiten haben sich geaendert".
+        # Teil-Treffer sind unkritisch: Gradle verifiziert seine Metadaten selbst und
+        # laedt Fehlendes nach.
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper/dists
+          key: gradle-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('android/gradle/wrapper/gradle-wrapper.properties', 'android/gradle.properties', 'android/**/*.gradle', 'android/**/*.gradle.kts', 'pubspec.lock') }}
+          restore-keys: |
+            gradle-${{ runner.os }}-${{ runner.arch }}-
+
+      - name: Cache Flutter SDK bin cache
+        # Das ist der teure Teil: durch den Versionsswitch oben wird bin/cache jedes
+        # Lauf geloescht, Dart-SDK + Engine-Artefakte (~0,5-1 GB) luden bisher jeden
+        # Lauf neu. Eigener Entry (nicht mit dem NDK kombiniert), weil actions/cache
+        # einen bestehenden Key NICHT aktualisiert: gemischte Eintraege wuerden als
+        # halbvoller Stand dauerhaft verloren sein.
+        # EXAKTER Key inkl. Flutter-Version, restore-Key enthaelt zwingend die
+        # Flutter-Version - ein SDK-Fremdstand waere ein stiller Fehlbuild.
+        if: steps.tk.outputs.sdk_cache == 'on'
+        uses: actions/cache@v4
+        with:
+          path: |
+            /sdks/flutter/bin/cache
+          key: sdk-${{ runner.os }}-${{ runner.arch }}-flutter${{ steps.tk.outputs.flutter }}-binCache
+          restore-keys: |
+            sdk-${{ runner.os }}-${{ runner.arch }}-flutter${{ steps.tk.outputs.flutter }}-binCache
+
+      - name: Cache Android NDK
+        # Das NDK (~1-2 GB) installierte bisher JEDER Lauf ueber sdkmanager neu.
+        # Key haengt an Flutter- UND NDK-Version; restore Keys enthalten beide,
+        # damit nie ein NDK eines anderen Flutter-Stands in den Build rotaeiert.
+        # Wird der NDK im Lauf nicht installiert (andere Architektur), Speichert der
+        # Post-Step nichts - das ist ein Warnung, kein Fehler.
+        if: steps.tk.outputs.sdk_cache == 'on'
+        uses: actions/cache@v4
+        with:
+          path: |
+            /opt/android-sdk-linux/ndk
+          key: ndk-${{ runner.os }}-${{ runner.arch }}-flutter${{ steps.tk.outputs.flutter }}-ndk${{ steps.tk.outputs.ndk }}
+          restore-keys: |
+            ndk-${{ runner.os }}-${{ runner.arch }}-flutter${{ steps.tk.outputs.flutter }}-ndk
 
       - name: Setup Node.js 20 & ARM64 Flutter Engine
         run: |
@@ -123,20 +241,26 @@ jobs:
             # are ~15x larger (165 MB instead of 12 MB per ABI). The NDK's x86_64 llvm-strip
             # cannot run under QEMU (needs libz.so.1 etc. in the cross sysroot), so install
             # the NDK Flutter expects up front and swap in Ubuntu's native arm64 llvm-strip.
-            NDK_VERSION="$(sed -nE 's/.*ndkVersion: String = "([^"]+)".*/\1/p' "${FLUTTER_ROOT:-/sdks/flutter}/packages/flutter_tools/gradle/src/main/kotlin/FlutterExtension.kt")"
+            # NEU: der Block ist idempotent geworden, weil das NDK jetzt aus dem Cache
+            # kommen kann - ohne diese beiden Falls waere der zweite Lauf kaputt
+            # (`mv` findet die bereits umbenannte Datei nicht).
+            NDK_VERSION="${{ steps.tk.outputs.ndk }}"
             [ -n "$NDK_VERSION" ] || { echo "::error::Could not determine Flutter's NDK version"; exit 1; }
-            echo "Installing NDK $NDK_VERSION ..."
-            yes | sdkmanager --install "ndk;${NDK_VERSION}" > /dev/null
             NDK_BIN="${ANDROID_HOME:-/opt/android-sdk-linux}/ndk/${NDK_VERSION}/toolchains/llvm/prebuilt/linux-x86_64/bin"
+            if [ -d "$NDK_BIN" ]; then
+              echo "NDK $NDK_VERSION vorhanden (Cache-Hit) - sdkmanager wird uebersprungen"
+            else
+              echo "Installing NDK $NDK_VERSION ..."
+              yes | sdkmanager --install "ndk;${NDK_VERSION}" > /dev/null
+            fi
             for tool in llvm-strip llvm-objcopy; do
-              mv "$NDK_BIN/$tool" "$NDK_BIN/$tool.x86_64"
-              ln -s "$(command -v "$tool")" "$NDK_BIN/$tool"
+              if [ ! -f "$NDK_BIN/$tool.x86_64" ] && [ -f "$NDK_BIN/$tool" ]; then
+                mv "$NDK_BIN/$tool" "$NDK_BIN/$tool.x86_64"
+              fi
+              ln -sf "$(command -v "$tool")" "$NDK_BIN/$tool"
             done
             "$NDK_BIN/llvm-strip" --version | head -n 2
           fi
-
-      - name: Checkout Repository
-        uses: actions/checkout@v4
 
       - name: Setup QEMU Interceptor
         run: |
@@ -187,8 +311,11 @@ jobs:
           echo "=== Generated APK Artifacts ==="
           ls -lah release-apks/
 
+      # v3 -> v4: Gitea 1.27 bedient die v4-Artifact-API nativ. v3 ist gegen die
+      # v4-API inkompatibel (anderer Upload-Endpunkt/Andockung) und lief hier nur,
+      # weil der Runner beide Backends anbietet - aufwaerts kompatibel bleibt v4.
       - name: Upload Universal APK
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: oggauer-gemeindetrommler-universal
           path: release-apks/oggauer-gemeindetrommler-universal.apk
@@ -196,7 +323,7 @@ jobs:
           if-no-files-found: error
 
       - name: Upload ARM64 APK
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: oggauer-gemeindetrommler-arm64-v8a
           path: release-apks/oggauer-gemeindetrommler-arm64-v8a.apk
@@ -204,7 +331,7 @@ jobs:
           if-no-files-found: error
 
       - name: Upload ARMv7 APK
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: oggauer-gemeindetrommler-armeabi-v7a
           path: release-apks/oggauer-gemeindetrommler-armeabi-v7a.apk
@@ -212,7 +339,7 @@ jobs:
           if-no-files-found: error
 
       - name: Upload x86_64 APK
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: oggauer-gemeindetrommler-x86_64
           path: release-apks/oggauer-gemeindetrommler-x86_64.apk
