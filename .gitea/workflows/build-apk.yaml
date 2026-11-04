@@ -54,37 +54,25 @@ jobs:
       image: ghcr.io/cirruslabs/flutter:3.44.0
       options: --privileged
     steps:
-      - name: Bootstrap Node.js 20 (bash, vor allen uses-Schritten)
-        # PFLICHT in diesem Image: ghcr.io/cirruslabs/flutter:3.44.0 hat KEIN node
-        # (verifiziert: docker run --rm --entrypoint sh <image> -lc 'command -v node'
-        # -> ohne Treffer). act_runner fuehrt jede `uses:`-Action im Job-Container
-        # als `docker exec node .../dist/index.js` aus; fehlt node, stirbt der Schritt
-        # mit Exit 126 ("exec: node: executable file not found in $PATH") - genau
-        # daran ist Run 97 (fl-ci-probe) in Schritt 1 gescheitert.
-        # Dieser Step ist reines bash und braucht deshalb selbst kein node.
+      # NEU an erster Stelle: das Job-Image (ghcr.io/cirruslabs/flutter) enthaelt KEIN
+      # node - jede JS-basierte Action (checkout, cache) lauft sonst nach 0s mit
+      # "exec: node: executable file not found" (Exit 126) ins Leere. In main steckte
+      # die Node-Installation im selben Step wie das QEMU-Setup, das hier unten erst
+      # nach den Caches laeuft; fuer Actions muss node aber vorher da sein. Deshalb ist
+      # die Node-Installation als eigener, vorgelagerter Step abgetrennt.
+      - name: Setup Node.js runtime for actions
         shell: bash
-        timeout-minutes: 5
         run: |
           set -euo pipefail
           if command -v node >/dev/null 2>&1; then
             echo "node bereits vorhanden: $(node --version)"
-            exit 0
+          else
+            ARCH="$(uname -m)"
+            if [ "$ARCH" = "aarch64" ] || [ "$ARCH" = "arm64" ]; then NODE_ARCH="arm64"; else NODE_ARCH="x64"; fi
+            curl -fsSL "https://nodejs.org/dist/v20.18.0/node-v20.18.0-linux-${NODE_ARCH}.tar.gz" \
+              | tar -xzf - -C /usr/local --strip-components=1
+            node --version
           fi
-          case "$(uname -m)" in
-            aarch64|arm64) NODE_ARCH=arm64 ;;
-            *) NODE_ARCH=x64 ;;
-          esac
-          curl -fsSL "https://nodejs.org/dist/v20.18.0/node-v20.18.0-linux-${NODE_ARCH}.tar.gz" \
-            | tar -xz -C /usr/local --strip-components=1
-          node --version
-          echo "NODE_BOOTSTRAP_OK $(node --version)"
-
-      # NEU an erster Stelle: alle cache-Keys nutzen hashFiles(), und das rechnet
-      # ausschliesslich gegen den Workspace - ohne Checkout waere der Hash leer und
-      # der Key wuerde nie matchen. Reine Verschiebung, dieser Step brauchte vorher
-      # nichts und aendert nichts an den folgenden Steps.
-      - name: Checkout Repository
-        uses: actions/checkout@v4
 
       - name: Switch Flutter SDK to pinned version
         # act_runner defaults to `sh -e` (dash); bash is needed for `pipefail`.
@@ -107,6 +95,13 @@ jobs:
           # Cache-Restore den Dart-SDK erneut geladen und damit den gerade
           # wiederhergestellten Cache teilweise ueberschrieben. Der naechste Step
           # plus "Inspect Build Environment" liefern denselben Nachweis.
+
+      # NEU: Checkout jetzt direkt nach Node + SDK-Switch und VOR allen actions/cache-
+      # Steps. Grund 1: actions/cache/restore braucht node (Vorstep). Grund 2: alle
+      # Cache-Keys nutzen hashFiles(), das rechnet ausschliesslich gegen den Workspace
+      # - ohne Checkout waere der Hash leer und der Key wuerde nie matchen.
+      - name: Checkout Repository
+        uses: actions/checkout@v4
 
       - name: Detect toolchain versions for cache keys
         # NEU: Cache-Keys duerfen nicht raten. Die NDK-Version haengt an der
@@ -204,12 +199,14 @@ jobs:
           restore-keys: |
             ndk-${{ runner.os }}-${{ runner.arch }}-flutter${{ steps.tk.outputs.flutter }}-ndk
 
-      - name: Setup Node.js 20 & ARM64 Flutter Engine
+      # Umgetauft, und die Node-Installation ist nach oben vorgezogen (siehe erster
+      # Step): dieser Step macht jetzt nur noch das QEMU-/Engine-Setup. Er laeuft
+      # bewusst NACH den Cache-Restores, damit `flutter precache --android` und die
+      # NDK-Installation in die wiederhergestellten Cache-Verzeichnisse schreiben,
+      # statt sie kurz danach wieder zu ueberschreiben.
+      - name: Setup QEMU x86_64 Emulation & ARM64 Flutter Engine
         run: |
           ARCH=$(uname -m)
-          if [ "$ARCH" = "aarch64" ] || [ "$ARCH" = "arm64" ]; then NODE_ARCH="arm64"; else NODE_ARCH="x64"; fi
-          curl -fsSL "https://nodejs.org/dist/v20.18.0/node-v20.18.0-linux-${NODE_ARCH}.tar.gz" | tar -xzf - -C /usr/local --strip-components=1
-          node --version
 
           # On Linux ARM64, Flutter engine and Android AAPT2 need x86_64 emulation via QEMU.
           if [ "$ARCH" = "aarch64" ] || [ "$ARCH" = "arm64" ]; then
